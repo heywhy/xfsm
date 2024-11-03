@@ -10,14 +10,14 @@ config :git_hooks,
     ],
     pre_commit: [
       tasks: [
-        {:cmd, "mix credo --strict"},
-        {:cmd, "mix format --check-formatted"}
+        {:mix_task, :credo, ["--strict"]},
+        {:mix_task, :format, ["--check-formatted"]}
       ]
     ],
     pre_push: [
       tasks: [
-        {:cmd, "mix dialyzer"},
-        {:cmd, "mix test --color"}
+        {:mix_task, :dialyzer},
+        {:mix_task, :test, ["--color"]}
       ]
     ]
   ]

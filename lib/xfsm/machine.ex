@@ -4,6 +4,7 @@ defmodule XFsm.Machine do
   alias XFsm.Event
   alias XFsm.State
 
+  @enforce_keys [:context, :initial]
   defstruct [:initial, :state, :context, states: [], actions: %{}, guards: %{}]
 
   @type t :: %__MODULE__{
@@ -15,11 +16,16 @@ defmodule XFsm.Machine do
           actions: %{required(atom()) => fun()}
         }
 
-  @spec init(module()) :: t()
-  def init(module) do
+  @spec init(module(), keyword()) :: t()
+  def init(module, opts \\ []) do
+    opts =
+      opts
+      |> Keyword.validate!([:input])
+      |> Map.new()
+
     machine =
       struct!(__MODULE__,
-        context: module.__context__(%{}),
+        context: module.__context__(opts),
         states: module.__attr__(:states),
         guards: module.__attr__(:guards),
         actions: module.__attr__(:actions),

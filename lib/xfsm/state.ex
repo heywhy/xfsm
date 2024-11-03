@@ -9,7 +9,7 @@ defmodule XFsm.State do
           name: atom(),
           exit: nil | fun() | atom(),
           entry: nil | fun() | atom(),
-          events: [StateEvent.t()]
+          events: [Event.t()]
         }
 
   @spec add_event(t(), Event.t()) :: t()

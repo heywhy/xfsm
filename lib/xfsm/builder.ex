@@ -12,6 +12,7 @@ defmodule XFsm.Builder do
 
   defmacro context(argument, do: block) do
     quote do
+      @doc false
       def __context__(unquote(argument)), do: unquote(block)
     end
   end
@@ -42,6 +43,7 @@ defmodule XFsm.Builder do
     statements =
       case block do
         {:__block__, _, lines} -> lines
+        expr -> [expr]
       end
 
     {exprs, opts} =
@@ -59,6 +61,16 @@ defmodule XFsm.Builder do
 
             {[e] ++ exprs, opts}
 
+          {attr, _, _} = expr, {exprs, opts} when attr in [:entry, :exit] ->
+            {expr, opts} = add_attr(expr, {:state, [], __MODULE__}, attr, opts)
+
+            e =
+              quote do
+                state = unquote(expr)
+              end
+
+            {[e] ++ exprs, opts}
+
           {:on, _, _} = expr, {exprs, opts} ->
             {expr, opts} = add_event(expr, {:state, [], __MODULE__}, opts)
 
@@ -68,9 +80,6 @@ defmodule XFsm.Builder do
               end
 
             {[e] ++ exprs, opts}
-
-          _, acc ->
-            acc
         end
       )
 
@@ -86,10 +95,67 @@ defmodule XFsm.Builder do
     end
   end
 
-  defp add_attr(acc, attr, value) when is_atom(value) do
+  defmacro defa({method, _, arguments}, do: block) do
+    %{module: module} = __CALLER__
+
+    gen_method(module, :action, method, arguments, do: block)
+  end
+
+  defmacro defg({method, _, arguments}, do: block) do
+    %{module: module} = __CALLER__
+
+    gen_method(module, :guard, method, arguments, do: block)
+  end
+
+  defp gen_method(module, sect, name, arguments, do: block) when is_atom(name) do
+    method_def = {module, sect, name, {}, {}}
+    method = method_def_to_name(method_def)
+
+    fun =
+      {:&, [],
+       [
+         {:/, [],
+          [
+            {{:., [], [{:__aliases__, [], module}, method]}, [no_parens: true], []},
+            Enum.count(arguments)
+          ]}
+       ]}
+
+    quote do
+      Module.put_attribute(
+        __MODULE__,
+        :"#{unquote(sect)}s",
+        {unquote(name), unquote(fun)}
+      )
+
+      def unquote(method)(unquote_splicing(arguments)) do
+        unquote(block)
+      end
+    end
+  end
+
+  defp add_attr(acc, attr, value) do
     quote do
       unquote(acc) |> Map.put(unquote(attr), unquote(value))
     end
+  end
+
+  defp add_attr({attr, _, [argument, [do: block]]}, acc, attr, opts) when is_atom(attr) do
+    %{state: state, methods: methods, module: module} = opts
+    callback = :"#{state}_#{attr}"
+    {method_def, fun} = ast_to_callback(argument, block, module, callback, methods)
+
+    exprs =
+      quote do
+        state = unquote(acc)
+
+        Map.update!(state, unquote(attr), fn
+          nil -> [unquote(fun)]
+          entries when is_list(entries) -> [unquote(fun)] ++ entries
+        end)
+      end
+
+    {exprs, %{opts | methods: [method_def] ++ methods}}
   end
 
   defp add_event({:on, _, [event, [do: block]]}, acc, opts) when is_atom(event) do
@@ -104,7 +170,7 @@ defmodule XFsm.Builder do
         exprs,
         {Macro.escape(%Event{name: event}), opts},
         fn
-          {field, _, [value]}, {exprs, opts} when is_atom(value) ->
+          {field, _, [value]}, {exprs, opts} ->
             {add_attr(exprs, field, value), opts}
 
           {attr, _, [argument, [do: block]]}, {exprs, opts} when attr in [:action, :guard] ->
@@ -130,9 +196,6 @@ defmodule XFsm.Builder do
               end
 
             {exprs, %{opts | methods: [method_def] ++ methods}}
-
-          _, acc ->
-            acc
         end
       )
 
@@ -172,7 +235,7 @@ defmodule XFsm.Builder do
     {method_def, fun}
   end
 
-  @spec method_def_to_name({module(), atom(), integer(), tuple(), tuple()}) :: atom()
+  @spec method_def_to_name({module(), atom(), integer() | atom(), tuple(), tuple()}) :: atom()
   def method_def_to_name({_module, callback, tag, _argument, _block}), do: :"#{callback}_#{tag}"
 
   defmacro __using__(_env) do
@@ -181,6 +244,7 @@ defmodule XFsm.Builder do
 
       @before_compile XFsm.Builder
 
+      Module.register_attribute(__MODULE__, :guards, accumulate: true)
       Module.register_attribute(__MODULE__, :actions, accumulate: true)
       Module.register_attribute(__MODULE__, :methods, accumulate: true)
       Module.register_attribute(__MODULE__, :initial_state, accumulate: false)
@@ -200,10 +264,16 @@ defmodule XFsm.Builder do
         end
       end
 
-      def __attr__(:actions), do: @actions
+      unless Module.defines?(__MODULE__, {:__context__, 1}) do
+        @doc false
+        def __context__(_), do: nil
+      end
+
+      @doc false
+      def __attr__(:guards), do: Enum.into(@guards, %{})
+      def __attr__(:actions), do: Enum.into(@actions, %{})
       def __attr__(:initial_state), do: @initial_state
       def __attr__(:states), do: Enum.reverse(@states)
-      def __attr__(:methods), do: Enum.flat_map(@methods, & &1)
     end
   end
 end

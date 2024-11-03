@@ -77,9 +77,7 @@ defmodule XFsm.TestMachine do
     end
   end
 
-  # action :update do
-  # end
-  #
-  # action :persist do
-  # end
+  defa(update(%{action: action}), do: action)
+
+  defa(persist(), do: "hello")
 end

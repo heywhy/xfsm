@@ -12,6 +12,7 @@ defmodule XFsm.MixProject do
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
+      aliases: aliases(),
       description: "Declarative finite state machine",
       source_url: @source_url,
       homepage_url: @source_url,
@@ -39,7 +40,10 @@ defmodule XFsm.MixProject do
       {:credo, "~> 1.7", only: :dev, runtime: false},
       {:dialyxir, "~> 1.4", only: :dev, runtime: false},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
+      {:git_hooks, github: "qgadrian/elixir_git_hooks", only: :dev, runtime: false},
       {:git_ops, "~> 2.6", only: :dev, runtime: false}
     ]
   end
+
+  defp aliases, do: [setup: ["deps.get", "git_hooks.install"]]
 end

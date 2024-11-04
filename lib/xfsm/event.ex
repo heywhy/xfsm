@@ -1,5 +1,7 @@
 defmodule XFsm.Event do
-  @moduledoc false
+  @moduledoc """
+  Documentation for `XFsm.Event`.
+  """
 
   @enforce_keys [:name]
   defstruct [:name, :target, :action, :guard]

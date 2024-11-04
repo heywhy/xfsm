@@ -1,5 +1,7 @@
 defmodule XFsm.Machine do
-  @moduledoc false
+  @moduledoc """
+  Documentation for `XFsm.Machine`.
+  """
 
   alias XFsm.Event
   alias XFsm.State

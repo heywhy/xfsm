@@ -1,5 +1,7 @@
 defmodule XFsm.Actor do
-  @moduledoc false
+  @moduledoc """
+  Documentation for `XFsm.Actor`.
+  """
 
   alias XFsm.Machine
   alias XFsm.Snapshot

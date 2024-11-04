@@ -1,5 +1,7 @@
 defmodule XFsm.Builder do
-  @moduledoc false
+  @moduledoc """
+  Documentation for `XFsm.Builder`.
+  """
 
   alias XFsm.Event
   alias XFsm.State

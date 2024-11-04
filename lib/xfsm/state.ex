@@ -1,5 +1,7 @@
 defmodule XFsm.State do
-  @moduledoc false
+  @moduledoc """
+  Documentation for `XFsm.State`.
+  """
 
   alias XFsm.Event
 

@@ -7,8 +7,8 @@ defmodule XFsm.State do
 
   @type t :: %__MODULE__{
           name: atom(),
-          exit: nil | fun() | atom(),
-          entry: nil | fun() | atom(),
+          exit: nil | XFsm.callback(),
+          entry: nil | XFsm.callback(),
           events: [Event.t()]
         }
 

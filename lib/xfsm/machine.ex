@@ -5,10 +5,11 @@ defmodule XFsm.Machine do
   alias XFsm.State
 
   @enforce_keys [:context, :initial]
-  defstruct [:initial, :state, :context, states: [], actions: %{}, guards: %{}]
+  defstruct [:initial, :state, :context, :actor, states: [], actions: %{}, guards: %{}]
 
   @type t :: %__MODULE__{
           initial: atom(),
+          actor: nil | pid(),
           state: nil | atom(),
           context: nil | map(),
           states: [State.t()],
@@ -20,11 +21,12 @@ defmodule XFsm.Machine do
   def init(module, opts \\ []) do
     opts =
       opts
-      |> Keyword.validate!([:input])
+      |> Keyword.validate!([:actor, :input])
       |> Map.new()
 
     machine =
       struct!(__MODULE__,
+        actor: opts[:actor],
         context: module.__context__(opts),
         states: module.__attr__(:states),
         guards: module.__attr__(:guards),
@@ -34,19 +36,24 @@ defmodule XFsm.Machine do
 
     with state when state != nil <- machine.initial,
          %{} = state <- find_state(machine, state) do
-      enter_state(machine, state)
+      arg = %{
+        actor: machine.actor,
+        context: machine.context
+      }
+
+      enter_state(machine, state, nil, arg)
     else
       nil -> machine
     end
   end
 
-  @spec transition(t(), %{required(:type) => atom(), optional(atom()) => any()}) :: t()
+  @spec transition(t(), XFsm.event()) :: t()
   def transition(
-        %__MODULE__{actions: actions, context: context, state: state} = machine,
+        %__MODULE__{actions: actions, actor: actor, context: context, state: state} = machine,
         %{} = event
       )
       when state != nil do
-    arg = %{event: event}
+    arg = %{actor: actor, event: event}
     %State{events: events} = find_state(machine, state)
 
     case find_event(events, event, machine) do
@@ -81,8 +88,8 @@ defmodule XFsm.Machine do
   defp enter_state(
          %{actions: actions, context: context, state: current, states: states} = machine,
          %{name: state, entry: entry_fns},
-         event \\ nil,
-         arg \\ %{}
+         event,
+         arg
        ) do
     current_state = Enum.find(states, &(&1.name == current))
 
@@ -107,7 +114,8 @@ defmodule XFsm.Machine do
 
   defp reduce_cbs(nil, context, _arg, _actions), do: context
 
-  defp reduce_cbs(fun, context, arg, actions) when is_atom(fun) or is_map(fun) do
+  defp reduce_cbs(fun, context, arg, actions)
+       when is_atom(fun) or is_function(fun) or is_map(fun) do
     reduce_cbs([fun], context, arg, actions)
   end
 

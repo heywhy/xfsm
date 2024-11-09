@@ -4,8 +4,9 @@ defmodule XFsm.Actions do
   """
 
   alias XFsm.Actor
+  alias XFsm.Timers
 
-  @spec send_event(XFsm.action_arg(), map() | fun(), keyword()) :: map()
+  @spec send_event(XFsm.action_arg(), map() | fun(), keyword()) :: XFsm.context()
   def send_event(arg, event, opts \\ [])
 
   def send_event(%{actor: pid, context: context}, %{type: _} = event, opts) when is_pid(pid) do
@@ -14,7 +15,11 @@ defmodule XFsm.Actions do
         Actor.send(pid, event)
 
       delay when is_integer(delay) ->
-        :erlang.send_after(delay, pid, {:"$gen_cast", {:send, event}})
+        # INFO: maybe tag id with the machine module?
+        id = opts[:id]
+        ref = :erlang.send_after(delay, pid, {:"$gen_cast", {:send, event}})
+
+        Agent.update(XFsm.Timers, &Map.put(&1, id, ref))
     end
 
     context
@@ -24,7 +29,19 @@ defmodule XFsm.Actions do
     send_event(arg, fun.(arg), opts)
   end
 
-  @spec assigns(XFsm.action_arg(), map()) :: map()
+  @spec cancel(XFsm.action_arg(), term()) :: XFsm.context()
+  def cancel(%{context: context}, id) do
+    ref = Agent.get_and_update(Timers, &{&1[id], Map.delete(&1, id)})
+
+    case ref do
+      nil -> :ok
+      ref when is_reference(ref) -> :erlang.cancel_timer(ref)
+    end
+
+    context
+  end
+
+  @spec assigns(XFsm.action_arg(), map()) :: XFsm.context()
   def assigns(%{context: context} = arg, %{} = attrs) do
     changes =
       Enum.reduce(attrs, %{}, fn

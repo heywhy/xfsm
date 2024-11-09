@@ -27,6 +27,14 @@ defmodule XFsm.ActionsTest do
     assert_received {:"$gen_cast", {:send, %{type: :delete, user_id: 1}}}
   end
 
+  test "delayed sent event can be cancelled" do
+    arg = %{actor: self(), context: %{}}
+    context = send_event(arg, %{type: :test}, delay: 10, id: :some_id)
+
+    assert %{} = cancel(%{arg | context: context}, :some_id)
+    refute_receive {:"$gen_cast", {:send, %{type: :test}}}, 11
+  end
+
   test "assigns updates the context" do
     arg = %{
       context: %{value: 1},

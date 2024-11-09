@@ -13,7 +13,7 @@ defmodule XFsm.Machine do
           initial: atom(),
           actor: nil | pid(),
           state: nil | atom(),
-          context: nil | map(),
+          context: XFsm.context(),
           states: [State.t()],
           guards: %{required(atom()) => fun()},
           actions: %{required(atom()) => fun()}
@@ -26,15 +26,14 @@ defmodule XFsm.Machine do
       |> Keyword.validate!([:actor, :input])
       |> Map.new()
 
-    machine =
-      struct!(__MODULE__,
-        actor: opts[:actor],
-        context: module.__context__(opts),
-        states: module.__attr__(:states),
-        guards: module.__attr__(:guards),
-        actions: module.__attr__(:actions),
-        initial: module.__attr__(:initial_state)
-      )
+    machine = %__MODULE__{
+      actor: opts[:actor],
+      context: module.__context__(opts),
+      states: module.__attr__(:states),
+      guards: module.__attr__(:guards),
+      actions: module.__attr__(:actions),
+      initial: module.__attr__(:initial_state)
+    }
 
     with state when state != nil <- machine.initial,
          %{} = state <- find_state(machine, state) do
@@ -136,6 +135,8 @@ defmodule XFsm.Machine do
           {Map.fetch!(actions, fun), arg, nil}
 
         %{method: fun, params: params} when is_atom(fun) ->
+          params = maybe_invoke_params(params, arg)
+
           {Map.fetch!(actions, fun), arg, params}
 
         fun ->
@@ -148,6 +149,9 @@ defmodule XFsm.Machine do
       true -> fun.()
     end
   end
+
+  defp maybe_invoke_params(fun, arg) when is_function(fun, 1), do: fun.(arg)
+  defp maybe_invoke_params(params, _arg), do: params
 
   defmacro __using__(_) do
     quote do

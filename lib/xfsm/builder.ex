@@ -53,7 +53,7 @@ defmodule XFsm.Builder do
         statements,
         {[], opts},
         fn
-          {attr, _, [action]}, {exprs, opts} when attr in [:entry, :exit] ->
+          {attr, _, [action]}, {exprs, opts} when attr in [:entry, :exit] and is_atom(action) ->
             expr = add_attr({:state, [], __MODULE__}, attr, action)
 
             e =
@@ -160,6 +160,13 @@ defmodule XFsm.Builder do
     {exprs, %{opts | methods: [method_def] ++ methods}}
   end
 
+  defp add_attr({attr, c, [{m, o, args}]}, acc, attr, opts) when is_atom(attr) do
+    argument = {:arg, [], nil}
+    expr = {m, o, [argument | args]}
+
+    add_attr({attr, c, [argument, [do: expr]]}, acc, attr, opts)
+  end
+
   defp add_event({:on, _, [event, [do: block]]}, acc, opts) when is_atom(event) do
     exprs =
       case block do
@@ -172,32 +179,14 @@ defmodule XFsm.Builder do
         exprs,
         {Macro.escape(%Event{name: event}), opts},
         fn
-          {field, _, [value]}, {exprs, opts} ->
+          {field, _, [value]}, {exprs, opts} when is_atom(value) ->
             {add_attr(exprs, field, value), opts}
 
-          {attr, _, [argument, [do: block]]}, {exprs, opts} when attr in [:action, :guard] ->
-            %{state: state, methods: methods, module: module} = opts
-            callback = :"#{state}_#{event}_#{attr}"
-            {method_def, fun} = ast_to_callback(argument, block, module, callback, methods)
+          {field, _, [{:%{}, _, _} = expr]}, {exprs, opts} ->
+            {add_attr(exprs, field, expr), opts}
 
-            exprs =
-              quote do
-                unquote(exprs) |> struct!([{unquote(attr), unquote(fun)}])
-              end
-
-            {exprs, %{opts | methods: [method_def] ++ methods}}
-
-          {attr, _, [[do: block]]}, {exprs, opts} when attr in [:action, :guard] ->
-            %{state: state, methods: methods, module: module} = opts
-            callback = :"#{state}_#{event}_#{attr}"
-            {method_def, fun} = ast_to_callback({:_, [], nil}, block, module, callback, methods)
-
-            exprs =
-              quote do
-                unquote(exprs) |> struct!([{unquote(attr), unquote(fun)}])
-              end
-
-            {exprs, %{opts | methods: [method_def] ++ methods}}
+          {attr, _, _} = expr, acc when attr in [:action, :guard] ->
+            add_event_handler(event, expr, acc)
         end
       )
 
@@ -216,6 +205,37 @@ defmodule XFsm.Builder do
       end
 
     {expr, opts}
+  end
+
+  defp add_event_handler(event, {attr, _, [argument, expr]}, {exprs, opts}) do
+    %{state: state, methods: methods, module: module} = opts
+    callback = :"#{state}_#{event}_#{attr}"
+
+    block =
+      case expr do
+        [do: block] -> block
+        expr -> expr
+      end
+
+    {method_def, fun} = ast_to_callback(argument, block, module, callback, methods)
+
+    exprs =
+      quote do
+        unquote(exprs) |> struct!([{unquote(attr), unquote(fun)}])
+      end
+
+    {exprs, %{opts | methods: [method_def] ++ methods}}
+  end
+
+  defp add_event_handler(event, {attr, o, [{m, o1, args}]}, acc) do
+    argument = {:arg, [], nil}
+    expr = {m, o1, [argument | args]}
+
+    add_event_handler(event, {attr, o, [argument, expr]}, acc)
+  end
+
+  defp add_event_handler(event, {attr, o, [expr]}, acc) do
+    add_event_handler(event, {attr, o, [{:_, [], nil}, expr]}, acc)
   end
 
   defp ast_to_callback(argument, block, module, callback, methods) do

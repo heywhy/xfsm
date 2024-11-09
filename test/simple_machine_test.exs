@@ -4,13 +4,17 @@ defmodule XFsm.SimpleMachineTest do
 
   alias XFsm.Machine
 
+  import XFsm.Actions
+
   initial(:active)
   context(%{count: 0})
 
   state :active do
-    entry %{context: context} do
-      %{context | count: context.count + 1}
-    end
+    entry(
+      assigns(%{
+        count: &(&1.context.count + 1)
+      })
+    )
 
     on :toggle do
       target(:inactive)

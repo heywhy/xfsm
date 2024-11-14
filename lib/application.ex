@@ -4,14 +4,11 @@ defmodule XFsm.Application do
   """
   use Application
 
+  alias XFsm.Timers
+
   @impl true
   def start(_, _) do
-    children = [
-      %{
-        id: Agent,
-        start: {Agent, :start_link, [fn -> %{} end, [name: XFsm.Timers, hibernate_after: 5_000]]}
-      }
-    ]
+    children = [Timers]
 
     Supervisor.start_link(children, name: __MODULE__, strategy: :one_for_one)
   end

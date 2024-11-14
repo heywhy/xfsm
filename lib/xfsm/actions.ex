@@ -19,7 +19,7 @@ defmodule XFsm.Actions do
         id = opts[:id]
         ref = :erlang.send_after(delay, pid, {:"$gen_cast", {:send, event}})
 
-        Agent.update(XFsm.Timers, &Map.put(&1, id, ref))
+        Timers.add(id, ref)
     end
 
     context
@@ -31,7 +31,7 @@ defmodule XFsm.Actions do
 
   @spec cancel(XFsm.action_arg(), term()) :: XFsm.context()
   def cancel(%{context: context}, id) do
-    ref = Agent.get_and_update(Timers, &{&1[id], Map.delete(&1, id)})
+    ref = Timers.remove(id)
 
     case ref do
       nil -> :ok

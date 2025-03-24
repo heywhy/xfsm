@@ -118,7 +118,7 @@ defmodule XFsm.Builder do
        [
          {:/, [],
           [
-            {{:., [], [{:__aliases__, [], module}, method]}, [no_parens: true], []},
+            {{:., [], [module, method]}, [no_parens: true], []},
             Enum.count(arguments)
           ]}
        ]}

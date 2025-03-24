@@ -42,7 +42,7 @@ defmodule XFsm.MixProject do
       {:credo, "~> 1.7", only: :dev, runtime: false},
       {:dialyxir, "~> 1.4", only: :dev, runtime: false},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
-      {:git_hooks, github: "qgadrian/elixir_git_hooks", only: :dev, runtime: false},
+      {:git_hooks, "~> 0.8", only: :dev, runtime: false},
       {:git_ops, "~> 2.6", only: :dev, runtime: false}
     ]
   end

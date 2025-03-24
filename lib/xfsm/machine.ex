@@ -121,7 +121,7 @@ defmodule XFsm.Machine do
   defp apply_always(machine, new_state, arg) do
     %{actions: actions, context: context} = machine
 
-    matched = Enum.find(new_state.always, &allowed?(&1.guard, arg.event, machine))
+    matched = Enum.find(new_state.always, &allowed?(&1.guard, arg[:event], machine))
 
     case matched do
       %Always{target: t} = m when not is_nil(t) ->
@@ -154,7 +154,12 @@ defmodule XFsm.Machine do
 
   defp allowed?(guard, event, machine) do
     %{context: context, guards: guards} = machine
-    arg = %{context: context, event: event}
+
+    arg =
+      case event do
+        nil -> %{context: context}
+        event -> %{context: context, event: event}
+      end
 
     invoke(guard, arg, guards)
   end

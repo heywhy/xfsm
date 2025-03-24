@@ -3,6 +3,7 @@ defmodule XFsm.Builder do
   Documentation for `XFsm.Builder`.
   """
 
+  alias XFsm.Always
   alias XFsm.Event
   alias XFsm.State
 
@@ -82,6 +83,16 @@ defmodule XFsm.Builder do
               end
 
             {[e] ++ exprs, opts}
+
+          {:always, _, _} = expr, {exprs, opts} ->
+            {expr, opts} = add_always(expr, {:state, [], __MODULE__}, opts)
+
+            e =
+              quote do
+                state = unquote(expr)
+              end
+
+            {[e] ++ exprs, opts}
         end
       )
 
@@ -91,6 +102,37 @@ defmodule XFsm.Builder do
       state = %State{name: unquote(name)}
 
       unquote_splicing(exprs)
+
+      @states state
+      @methods unquote(methods)
+    end
+  end
+
+  defmacro on(name, do: block) when is_atom(name) do
+    opts = %{
+      methods: [],
+      state: :__machine__,
+      module: __CALLER__.module
+    }
+
+    {expr, opts} =
+      add_event(
+        {:on, [], [name, [do: block]]},
+        {:state, [], __MODULE__},
+        opts
+      )
+
+    expr =
+      quote do
+        state = unquote(expr)
+      end
+
+    methods = Macro.escape(opts.methods)
+
+    quote do
+      state = %State{name: :__global__}
+
+      unquote(expr)
 
       @states state
       @methods unquote(methods)
@@ -165,6 +207,34 @@ defmodule XFsm.Builder do
     expr = {m, o, [argument | args]}
 
     add_attr({attr, c, [argument, [do: expr]]}, acc, attr, opts)
+  end
+
+  defp add_always({:always, _, [[do: block]]}, acc, opts) do
+    exprs =
+      case block do
+        {:__block__, _, exprs} -> exprs
+        expr -> [expr]
+      end
+
+    {ast, opts} =
+      Enum.reduce(
+        exprs,
+        {Macro.escape(%Always{}), opts},
+        fn
+          {field, _, [value]}, {exprs, opts} when is_atom(value) ->
+            {add_attr(exprs, field, value), opts}
+
+          {attr, _, _} = expr, acc when attr in [:action, :guard] ->
+            add_event_handler(:always, expr, acc)
+        end
+      )
+
+    exprs =
+      quote do
+        unquote(acc) |> State.add_always(unquote(ast))
+      end
+
+    {exprs, opts}
   end
 
   defp add_event({:on, _, [event, [do: block]]}, acc, opts) when is_atom(event) do

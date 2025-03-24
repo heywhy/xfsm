@@ -3,14 +3,17 @@ defmodule XFsm.State do
   Documentation for `XFsm.State`.
   """
 
+  alias XFsm.Always
   alias XFsm.Event
 
-  defstruct [:name, :exit, :entry, events: []]
+  @enforce_keys [:name]
+  defstruct [:name, :exit, :entry, always: [], events: []]
 
   @type t :: %__MODULE__{
           name: atom(),
           exit: nil | XFsm.callback(),
           entry: nil | XFsm.callback(),
+          always: [Always.t()],
           events: [Event.t()]
         }
 
@@ -25,5 +28,10 @@ defmodule XFsm.State do
     event = struct!(Event, [name: name] ++ opts)
 
     struct!(state, events: [event] ++ events)
+  end
+
+  @spec add_always(t(), Always.t()) :: t()
+  def add_always(%__MODULE__{always: always} = state, %Always{} = a) do
+    struct!(state, always: [a] ++ always)
   end
 end

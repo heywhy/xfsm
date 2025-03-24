@@ -5,6 +5,11 @@ See [Conventional Commits](Https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
+## [v0.1.1](https://github.com/heywhy/xfsm/compare/v0.1.0...v0.1.1) (2025-03-24)
+
+
+
+
 ## [v0.1.0](https://github.com/heywhy/xfsm/compare/v0.1.0...v0.1.0) (2025-03-24)
 
 

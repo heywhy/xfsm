@@ -17,7 +17,7 @@ defmodule XFsm.Actions do
       delay when is_integer(delay) ->
         # INFO: maybe tag id with the machine module?
         id = opts[:id]
-        ref = :erlang.send_after(delay, pid, {:"$gen_cast", {:send, event}})
+        ref = Process.send_after(pid, {:"$gen_cast", {:send, event}}, delay)
 
         Timers.add(id, ref)
     end
@@ -35,7 +35,7 @@ defmodule XFsm.Actions do
 
     case ref do
       nil -> :ok
-      ref when is_reference(ref) -> :erlang.cancel_timer(ref)
+      ref when is_reference(ref) -> Process.cancel_timer(ref)
     end
 
     context

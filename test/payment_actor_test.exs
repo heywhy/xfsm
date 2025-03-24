@@ -6,6 +6,8 @@ defmodule XFsm.PaymentActorTest do
   alias XFsm.Actor
   alias XFsm.Snapshot
 
+  import XFsm.Actions
+
   initial(:pending)
 
   context(%{input: input}, do: %{payment: input.payment})
@@ -45,9 +47,22 @@ defmodule XFsm.PaymentActorTest do
   end
 
   state :poll_incoming do
+    entry(send_event(%{type: :timeout}, id: :timeout, delay: 6))
+    exit(cancel(:timeout))
+
+    on :test do
+      action(assigns(%{home: fn %{context: context} -> context.m end}))
+    end
+
+    on :timeout do
+      target(:timeout)
+    end
   end
 
   state :poll_outgoing do
+  end
+
+  state :timeout do
   end
 
   setup context do
@@ -59,8 +74,8 @@ defmodule XFsm.PaymentActorTest do
     payment = %{
       id: 1,
       customer: customer,
-      status: context[:status] || :pending,
-      direction: context[:direction] || :incoming
+      direction: context[:direction],
+      status: context[:status] || :pending
     }
 
     opts = [
@@ -75,6 +90,7 @@ defmodule XFsm.PaymentActorTest do
     assert %Snapshot{state: :pending} = Actor.snapshot(pid)
   end
 
+  @tag direction: :incoming
   test "capture incoming payment", %{pid: pid} do
     assert %Snapshot{state: :pending, context: %{payment: payment}} = Actor.snapshot(pid)
     refute is_map(payment[:payment_method])
@@ -83,6 +99,15 @@ defmodule XFsm.PaymentActorTest do
 
     assert %Snapshot{state: :poll_incoming, context: %{payment: payment}} = Actor.snapshot(pid)
     assert is_map(payment[:payment_method])
+  end
+
+  @tag direction: :incoming
+  test "captured incoming payment times out", %{pid: pid} do
+    :ok = Actor.send(pid, %{type: :capture})
+
+    Process.sleep(7)
+
+    assert %Snapshot{state: :timeout} = Actor.snapshot(pid)
   end
 
   @tag direction: :outgoing

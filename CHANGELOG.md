@@ -5,6 +5,15 @@ See [Conventional Commits](Https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
+## [v0.2.1](https://github.com/heywhy/xfsm/compare/v0.2.0...v0.2.1) (2025-03-24)
+
+
+
+
+### Bug Fixes:
+
+* event would be nil for eventless transitions
+
 ## [v0.2.0](https://github.com/heywhy/xfsm/compare/v0.1.2...v0.2.0) (2025-03-24)
 
 

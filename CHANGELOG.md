@@ -5,6 +5,15 @@ See [Conventional Commits](Https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
+## [v0.1.2](https://github.com/heywhy/xfsm/compare/v0.1.1...v0.1.2) (2025-03-24)
+
+
+
+
+### Bug Fixes:
+
+* remove alias in method generation
+
 ## [v0.1.1](https://github.com/heywhy/xfsm/compare/v0.1.0...v0.1.1) (2025-03-24)
 
 

@@ -5,6 +5,15 @@ See [Conventional Commits](Https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
+## [v0.3.0](https://github.com/heywhy/xfsm/compare/v0.2.1...v0.3.0) (2025-03-27)
+
+
+
+
+### Features:
+
+* support catch all event handler
+
 ## [v0.2.1](https://github.com/heywhy/xfsm/compare/v0.2.0...v0.2.1) (2025-03-24)
 
 

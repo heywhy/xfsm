@@ -10,7 +10,7 @@ by adding `xfsm` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:xfsm, "~> 0.2.1"}
+    {:xfsm, "~> 0.3.0"}
   ]
 end
 ```

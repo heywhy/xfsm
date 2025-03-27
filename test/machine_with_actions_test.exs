@@ -25,6 +25,10 @@ defmodule XFsm.MachineWithActionsTest do
     end
   end
 
+  on :* do
+    action(%{event: e}, do: IO.puts("Unhandled event: #{inspect(e)}"))
+  end
+
   defa activate() do
     IO.puts("Activating")
   end
@@ -56,6 +60,23 @@ defmodule XFsm.MachineWithActionsTest do
       "Default message",
       "Some notification",
       "Activating"
+    ]
+
+    assert %{state: :active} = machine
+    assert String.trim(output) == Enum.join(expected_output, "\n")
+  end
+
+  test "the catch all event handler is invoked" do
+    {machine, output} =
+      with_io(fn ->
+        __MODULE__
+        |> Machine.init()
+        |> Machine.transition(%{type: :unknown})
+      end)
+
+    expected_output = [
+      "Activating",
+      "Unhandled event: %{type: :unknown}"
     ]
 
     assert %{state: :active} = machine

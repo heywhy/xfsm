@@ -65,12 +65,14 @@ defmodule XFsm.Machine do
   @spec transition(t(), XFsm.event()) :: t()
   def transition(
         %__MODULE__{state: state} = machine,
-        %{type: _} = event
+        %{type: type} = event
       )
-      when state != nil do
+      when state != nil and type != :* do
     %State{events: events} = find_state(machine, state)
+    events = Enum.concat(events, machine.events)
+    found = find_event(events, event, machine)
 
-    case find_event(events ++ machine.events, event, machine) do
+    case maybe_use_catch_all(found, events) do
       %Event{} = e ->
         e = %{e | target: e.target || state}
         arg = %{actor: machine.actor, event: event}
@@ -81,6 +83,12 @@ defmodule XFsm.Machine do
       nil ->
         machine
     end
+  end
+
+  defp maybe_use_catch_all(%Event{} = e, _), do: e
+
+  defp maybe_use_catch_all(nil, searchable_events) do
+    Enum.find(searchable_events, &(&1.name == :*))
   end
 
   defp find_event(events, %{type: type} = e, machine) do

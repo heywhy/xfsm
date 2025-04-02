@@ -51,10 +51,7 @@ defmodule XFsm.Machine do
 
     with state when state != nil <- machine.initial,
          %{} = state <- find_state(machine, state) do
-      arg = %{
-        actor: machine.actor,
-        context: machine.context
-      }
+      arg = %{actor: machine.actor}
 
       enter_state(machine, state, nil, arg)
     else

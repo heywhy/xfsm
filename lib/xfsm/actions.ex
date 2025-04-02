@@ -31,9 +31,7 @@ defmodule XFsm.Actions do
 
   @spec cancel(XFsm.action_arg(), term()) :: XFsm.context()
   def cancel(%{context: context}, id) do
-    ref = Timers.remove(id)
-
-    case ref do
+    case Timers.remove(id) do
       nil -> :ok
       ref when is_reference(ref) -> Process.cancel_timer(ref)
     end

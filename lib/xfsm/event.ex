@@ -8,7 +8,7 @@ defmodule XFsm.Event do
 
   @type t :: %__MODULE__{
           name: atom(),
-          target: nil | XFsm.callback(),
+          target: nil | atom(),
           action: nil | XFsm.callback(),
           guard: nil | XFsm.callback()
         }

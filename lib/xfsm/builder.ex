@@ -180,7 +180,7 @@ defmodule XFsm.Builder do
 
   defp add_attr(acc, attr, value) do
     quote do
-      unquote(acc) |> Map.put(unquote(attr), unquote(value))
+      struct!(unquote(acc), [{unquote(attr), unquote(value)}])
     end
   end
 

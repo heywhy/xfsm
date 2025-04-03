@@ -2,6 +2,7 @@ defmodule XFsm.Actor do
   @moduledoc """
   Documentation for `XFsm.Actor`.
   """
+  use GenServer
 
   alias XFsm.Machine
   alias XFsm.Snapshot
@@ -12,36 +13,103 @@ defmodule XFsm.Actor do
   @spec send(GenServer.server(), XFsm.event()) :: :ok
   def send(pid, event), do: GenServer.cast(pid, {:send, event})
 
-  defmacro __using__(_opts) do
-    quote do
-      use GenServer
+  @spec subscribe(pid(), fun()) :: reference()
+  def subscribe(pid, fun) when is_function(fun, 1) do
+    GenServer.call(pid, {:subscribe, fun})
+  end
 
+  @spec unsubscribe(pid(), reference()) :: :ok
+  def unsubscribe(pid, ref) when is_reference(ref) do
+    GenServer.call(pid, {:unsubscribe, ref})
+  end
+
+  @spec start_link(keyword()) :: GenServer.on_start()
+  def start_link(opts \\ []) do
+    actor_opts = Keyword.take(opts, ~w[debug hibernate_after name spawn_opt timeout]a)
+
+    GenServer.start_link(__MODULE__, opts, actor_opts)
+  end
+
+  @impl GenServer
+  def init(opts) do
+    {machine, opts} = Keyword.pop!(opts, :machine)
+    opts = Keyword.put(opts, :actor, self())
+
+    state = %{
+      subs: %{},
+      machine: Machine.init(machine, opts)
+    }
+
+    {:ok, state}
+  end
+
+  @impl GenServer
+  def handle_call(:snapshot, _from, %{machine: machine} = state) do
+    snapshot = %Snapshot{state: machine.state, context: machine.context}
+
+    {:reply, snapshot, state}
+  end
+
+  def handle_call({:subscribe, fun}, _from, %{subs: subs} = state) do
+    ref = make_ref()
+    subs = Map.put(subs, ref, fun)
+
+    {:reply, ref, %{state | subs: subs}}
+  end
+
+  def handle_call({:unsubscribe, ref}, _from, %{subs: subs} = state) do
+    subs = Map.delete(subs, ref)
+
+    {:reply, :ok, %{state | subs: subs}}
+  end
+
+  @impl GenServer
+  def handle_cast({:send, event}, %{machine: machine} = state) do
+    machine = Machine.transition(machine, event)
+
+    :ok = Process.send(self(), :notify_subs, [])
+
+    {:noreply, %{state | machine: machine}}
+  end
+
+  # INFO: find an efficient approach to pass snapshot around assuming
+  # an actor state/context is too large.
+  @impl GenServer
+  def handle_info(:notify_subs, state) do
+    %{machine: machine, subs: subs} = state
+    snapshot = %Snapshot{state: machine.state, context: machine.context}
+
+    for {_, fun} <- subs do
+      Process.spawn(fn -> fun.(snapshot) end, [])
+    end
+
+    {:noreply, state}
+  end
+
+  defmacro __using__(spec \\ []) do
+    spec =
+      spec
+      |> Keyword.validate!(~w[restart shutdown modules significant]a)
+      |> Enum.into(%{})
+      |> Macro.escape()
+
+    quote do
       @spec start_link(keyword()) :: GenServer.on_start()
       def start_link(opts \\ []) do
-        actor_opts = Keyword.take(opts, ~w[debug hibernate_after name spawn_opt timeout]a)
+        opts = Keyword.merge(opts, machine: __MODULE__)
 
-        GenServer.start_link(__MODULE__, opts, actor_opts)
+        XFsm.Actor.start_link(opts)
       end
 
-      @impl GenServer
-      def init(opts) do
-        opts = Keyword.put(opts, :actor, self())
+      @spec child_spec(keyword()) :: Supervisor.child_spec()
+      def child_spec(opts) do
+        default = %{
+          id: __MODULE__,
+          start: {__MODULE__, :start_link, [opts]},
+          type: :worker
+        }
 
-        {:ok, %{machine: Machine.init(__MODULE__, opts)}}
-      end
-
-      @impl GenServer
-      def handle_call(:snapshot, _from, %{machine: machine} = state) do
-        snapshot = %Snapshot{state: machine.state, context: machine.context}
-
-        {:reply, snapshot, state}
-      end
-
-      @impl GenServer
-      def handle_cast({:send, event}, %{machine: machine} = state) do
-        machine = Machine.transition(machine, event)
-
-        {:noreply, %{state | machine: machine}}
+        Map.merge(default, unquote(spec))
       end
     end
   end

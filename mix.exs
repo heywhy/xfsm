@@ -67,6 +67,7 @@ defmodule XFsm.MixProject do
         "docs/machines.md",
         "docs/input.md",
         "docs/transitions.md",
+        "docs/eventless-transitions.md",
         "docs/actions.md",
         "docs/guards.md"
       ],
@@ -81,6 +82,7 @@ defmodule XFsm.MixProject do
           "docs/machines.md",
           "docs/input.md",
           "docs/transitions.md",
+          "docs/eventless-transitions.md",
           "docs/actions.md",
           "docs/guards.md"
         ]

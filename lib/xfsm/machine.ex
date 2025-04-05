@@ -56,7 +56,14 @@ defmodule XFsm.Machine do
       enter_state(machine, state, nil, arg)
     else
       # INFO: maybe raise an error for missing initial state?!
-      nil -> machine
+      nil ->
+        unless Enum.empty?(states) do
+          raise ArgumentError, """
+          An initial state has to be specified for the machine: #{inspect(module)}.
+          """
+        end
+
+        machine
     end
   end
 
@@ -73,6 +80,26 @@ defmodule XFsm.Machine do
     case maybe_use_catch_all(found, events) do
       %Event{} = e ->
         e = %{e | target: e.target || state}
+        arg = %{actor: machine.actor, event: event}
+        new_state = find_state(machine, e.target)
+
+        enter_state(machine, new_state, e, arg)
+
+      nil ->
+        machine
+    end
+  end
+
+  def transition(
+        %__MODULE__{state: nil, events: events} = machine,
+        %{type: type} = event
+      )
+      when type != :* do
+    found = find_event(events, event, machine)
+
+    case maybe_use_catch_all(found, events) do
+      %Event{} = e ->
+        e = %{e | target: nil}
         arg = %{actor: machine.actor, event: event}
         new_state = find_state(machine, e.target)
 
@@ -122,6 +149,23 @@ defmodule XFsm.Machine do
     machine = %{machine | state: new_state.name, context: context}
 
     apply_always(machine, new_state, arg)
+  end
+
+  defp enter_state(
+         %{state: nil} = machine,
+         nil,
+         event,
+         arg
+       ) do
+    %{actions: actions, context: context} = machine
+
+    context =
+      case event do
+        nil -> context
+        %Event{action: fns} -> reduce_cbs(fns, context, arg, actions)
+      end
+
+    %{machine | context: context}
   end
 
   defp apply_always(machine, new_state, arg) do

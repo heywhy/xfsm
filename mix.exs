@@ -14,12 +14,16 @@ defmodule XFsm.MixProject do
       deps: deps(),
       aliases: aliases(),
       description: "Declarative finite state machine",
-      source_url: @source_url,
-      homepage_url: @source_url,
       package: [
         licenses: ["MIT"],
         links: %{"GitHub" => @source_url}
-      ]
+      ],
+
+      # Docs
+      name: "XFsm",
+      source_url: @source_url,
+      homepage_url: @source_url,
+      docs: &docs/0
     ]
   end
 
@@ -48,4 +52,48 @@ defmodule XFsm.MixProject do
   end
 
   defp aliases, do: [setup: ["deps.get", "git_hooks.install"]]
+
+  defp docs do
+    [
+      main: "quickstart",
+      assets: %{"docs/js" => "js"},
+      before_closing_head_tag: &before_closing_head_tag/1,
+      extras: [
+        "docs/quickstart.md",
+        "docs/installation.md",
+        "docs/cheatsheet.cheatmd",
+        {:"docs/state-machines.md", [title: "State machines"]},
+        {:"README.md", [title: "What is XFsm"]},
+        "docs/machines.md",
+        "docs/input.md",
+        "docs/transitions.md",
+        "docs/actions.md",
+        "docs/guards.md"
+      ],
+      groups_for_extras: [
+        "Get started": [
+          "docs/quickstart.md",
+          "docs/installation.md",
+          "docs/cheatsheet.cheatmd"
+        ],
+        "Core concept": ["docs/state-machines.md", "README.md"],
+        "State machines": [
+          "docs/machines.md",
+          "docs/input.md",
+          "docs/transitions.md",
+          "docs/actions.md",
+          "docs/guards.md"
+        ]
+      ]
+    ]
+  end
+
+  defp before_closing_head_tag(:html) do
+    """
+    <script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.min.js"></script>
+    <script src="js/renderer.js"></script>
+    """
+  end
+
+  defp before_closing_head_tag(:epub), do: ""
 end

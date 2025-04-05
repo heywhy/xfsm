@@ -1,5 +1,5 @@
 defmodule XfsmTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   alias XFsm.Snapshot
 

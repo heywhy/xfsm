@@ -1,5 +1,5 @@
 defmodule XFsm.MachineWithInputAndOutputTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   use XFsm.Machine
 
   alias XFsm.Machine

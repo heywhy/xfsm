@@ -1,7 +1,8 @@
 defmodule XFsm.MachineWithEventlessPropsTest do
-  alias XFsm.Machine
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   use XFsm.Machine
+
+  alias XFsm.Machine
 
   import XFsm.Actions
 
@@ -22,8 +23,6 @@ defmodule XFsm.MachineWithEventlessPropsTest do
   end
 
   state :boiling do
-    # entry(:turn_off_light)
-
     always do
       target(:heating)
       guard(%{context: c}, do: c.temp <= 100)

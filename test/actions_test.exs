@@ -1,5 +1,5 @@
 defmodule XFsm.ActionsTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   import XFsm.Actions
 

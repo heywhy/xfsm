@@ -1,5 +1,5 @@
 defmodule XFsm.CounterTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   use XFsm.Actor
   use XFsm.Machine
 

@@ -1,5 +1,5 @@
 defmodule MachineTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
 
   alias XFsm.Machine
 

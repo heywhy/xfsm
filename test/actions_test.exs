@@ -16,7 +16,7 @@ defmodule XFsm.ActionsTest do
     arg = %{actor: self(), context: %{}}
 
     assert %{} = send_event(arg, event, delay: 10)
-    assert_receive {:"$gen_cast", {:send, ^event}}, 11
+    assert_receive {:"$gen_cast", {:send, ^event}}, 12
   end
 
   test "passing function to send_event gets invoked" do

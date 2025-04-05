@@ -10,4 +10,12 @@ defmodule XFsm.Snapshot do
           state: atom(),
           context: nil | map()
         }
+
+  defimpl String.Chars do
+    alias XFsm.Snapshot
+
+    def to_string(%Snapshot{state: state, context: context}) do
+      "'#{state}' with context #{inspect(context)}"
+    end
+  end
 end

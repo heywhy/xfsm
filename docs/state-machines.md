@@ -63,10 +63,11 @@ Transitions are deterministic; each combination of state and event always points
 ---
 title: Lightbulb
 ---
-flowchart LR
+stateDiagram-v2
 
-on ---->|turn_off|off
-off ---->|turn_on|on
+[*] --> off
+off --> on: turn_on
+on --> off: turn_off
 ```
 
 With its two finite states and transitions, this lightbulb process is a *Finite State Machine*. A state machine is used to describe the behavior of something. The machine outlines the thing’s states and the transitions between them. It’s considered a Finite State Machine because it has a finite number of states.

@@ -29,32 +29,23 @@ defmodule XFsm.CounterTest do
   end
 
   test "increment count", %{pid: pid} do
-    test_pid = self()
-
-    Actor.subscribe(pid, &send(test_pid, {:changed, &1}))
-
     :ok = Actor.send(pid, %{type: :inc})
 
-    assert_receive {:changed, %Snapshot{state: nil, context: %{count: 1}}}
+    assert snapshot = Actor.snapshot(pid)
+    assert %Snapshot{state: nil, context: %{count: 1}} = snapshot
   end
 
   test "decrement count", %{pid: pid} do
-    test_pid = self()
-
-    Actor.subscribe(pid, &send(test_pid, {:changed, &1}))
-
     :ok = Actor.send(pid, %{type: :dec})
 
-    assert_receive {:changed, %Snapshot{state: nil, context: %{count: -1}}}
+    assert snapshot = Actor.snapshot(pid)
+    assert %Snapshot{state: nil, context: %{count: -1}} = snapshot
   end
 
   test "set count", %{pid: pid} do
-    test_pid = self()
-
-    Actor.subscribe(pid, &send(test_pid, {:changed, &1}))
-
     :ok = Actor.send(pid, %{type: :set, value: 10})
 
-    assert_receive {:changed, %Snapshot{state: nil, context: %{count: 10}}}
+    assert snapshot = Actor.snapshot(pid)
+    assert %Snapshot{state: nil, context: %{count: 10}} = snapshot
   end
 end

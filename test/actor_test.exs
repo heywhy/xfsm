@@ -26,6 +26,12 @@ defmodule XFsm.ActorTest do
     [pid: pid]
   end
 
+  test "grab snapshot", %{pid: pid} do
+    assert %Snapshot{state: :off} = Actor.snapshot(pid)
+    assert :ok = Actor.send(pid, %{type: :toggle})
+    assert %Snapshot{state: :on} = Actor.snapshot(pid)
+  end
+
   test "subscribe to an actor", %{pid: pid} do
     test_pid = self()
     ref = Actor.subscribe(pid, &send(test_pid, {:changed, &1}))

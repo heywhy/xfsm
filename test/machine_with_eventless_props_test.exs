@@ -1,5 +1,6 @@
 defmodule XFsm.MachineWithEventlessPropsTest do
   use ExUnit.Case, async: true
+  use XFsm.Actor
   use XFsm.Machine
 
   alias XFsm.Machine
@@ -31,6 +32,12 @@ defmodule XFsm.MachineWithEventlessPropsTest do
 
   on :update_temp do
     action(assigns(%{temp: & &1.event.temp}))
+  end
+
+  setup do
+    pid = start_supervised!({__MODULE__, []})
+
+    [pid: pid]
   end
 
   test "update temp" do

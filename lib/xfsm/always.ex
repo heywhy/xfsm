@@ -2,6 +2,7 @@ defmodule XFsm.Always do
   @moduledoc """
   Documentation for `XFsm.Always`.
   """
+
   defstruct [:target, :action, :guard]
 
   @type t :: %__MODULE__{

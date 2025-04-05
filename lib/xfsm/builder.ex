@@ -22,17 +22,13 @@ defmodule XFsm.Builder do
 
   defmacro context({:%{}, _, _} = ast) do
     quote do
-      context _ do
-        unquote(ast)
-      end
+      context(_, do: unquote(ast))
     end
   end
 
   defmacro context(do: block) do
     quote do
-      context _ do
-        unquote(block)
-      end
+      context(_, do: unquote(block))
     end
   end
 
@@ -327,6 +323,7 @@ defmodule XFsm.Builder do
     {method_def, fun}
   end
 
+  @doc false
   @spec method_def_to_name({module(), atom(), integer() | atom(), tuple(), tuple()}) :: atom()
   def method_def_to_name({_module, callback, tag, _argument, _block}), do: :"#{callback}_#{tag}"
 

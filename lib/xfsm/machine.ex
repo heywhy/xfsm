@@ -55,6 +55,7 @@ defmodule XFsm.Machine do
 
       enter_state(machine, state, nil, arg)
     else
+      # INFO: maybe raise an error for missing initial state?!
       nil -> machine
     end
   end

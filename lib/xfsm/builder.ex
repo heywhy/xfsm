@@ -264,10 +264,11 @@ defmodule XFsm.Builder do
     {exprs, opts}
   end
 
-  defp add_event({:on, _, [event, attrs]}, acc, opts) when is_atom(event) do
+  defp add_event({:on, _, [event, attrs]}, acc, opts) when is_atom(event) and is_list(attrs) do
     expr =
       quote do
-        unquote(acc) |> State.add_event(unquote(event), unquote(attrs))
+        event = struct!(XFsm.Event, Keyword.merge(unquote(attrs), name: unquote(event)))
+        unquote(acc) |> State.add_event(event)
       end
 
     {expr, opts}

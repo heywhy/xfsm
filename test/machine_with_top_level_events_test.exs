@@ -1,4 +1,4 @@
-defmodule XFsm.CounterTest do
+defmodule XFsm.MachineWithTopLevelEventsTest do
   use ExUnit.Case, async: true
   use XFsm.Actor
   use XFsm.Machine
@@ -47,5 +47,15 @@ defmodule XFsm.CounterTest do
 
     assert snapshot = Actor.snapshot(pid)
     assert %Snapshot{state: nil, context: %{count: 10}} = snapshot
+  end
+
+  test "unknown event is ignored", %{pid: pid} do
+    assert snapshot = Actor.snapshot(pid)
+    assert %Snapshot{state: nil, context: %{count: 0}} = snapshot
+
+    :ok = Actor.send(pid, %{type: :unknown, value: 10})
+
+    assert snapshot = Actor.snapshot(pid)
+    assert %Snapshot{state: nil, context: %{count: 0}} = snapshot
   end
 end

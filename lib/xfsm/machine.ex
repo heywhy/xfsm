@@ -77,7 +77,7 @@ defmodule XFsm.Machine do
     events = Enum.concat(events, machine.events)
     found = find_event(events, event, machine)
 
-    case maybe_use_catch_all(found, events) do
+    case maybe_find_catch_all(found, events) do
       %Event{} = e ->
         e = %{e | target: e.target || state}
         arg = %{actor: machine.actor, event: event}
@@ -97,7 +97,7 @@ defmodule XFsm.Machine do
       when type != :* do
     found = find_event(events, event, machine)
 
-    case maybe_use_catch_all(found, events) do
+    case maybe_find_catch_all(found, events) do
       %Event{} = e ->
         e = %{e | target: nil}
         arg = %{actor: machine.actor, event: event}
@@ -110,9 +110,9 @@ defmodule XFsm.Machine do
     end
   end
 
-  defp maybe_use_catch_all(%Event{} = e, _), do: e
+  defp maybe_find_catch_all(%Event{} = e, _), do: e
 
-  defp maybe_use_catch_all(nil, searchable_events) do
+  defp maybe_find_catch_all(nil, searchable_events) do
     Enum.find(searchable_events, &(&1.name == :*))
   end
 

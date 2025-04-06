@@ -22,14 +22,6 @@ defmodule XFsm.State do
     struct!(state, events: [event] ++ events)
   end
 
-  @spec add_event(t(), atom(), keyword()) :: t()
-  def add_event(%__MODULE__{events: events} = state, name, opts \\ []) do
-    opts = Keyword.validate!(opts, ~w[target action guard]a)
-    event = struct!(Event, [name: name] ++ opts)
-
-    struct!(state, events: [event] ++ events)
-  end
-
   @spec add_always(t(), Always.t()) :: t()
   def add_always(%__MODULE__{always: always} = state, %Always{} = a) do
     struct!(state, always: [a] ++ always)

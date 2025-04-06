@@ -3,7 +3,8 @@ defmodule XFsm.MachineWithEventlessPropsTest do
   use XFsm.Actor
   use XFsm.Machine
 
-  alias XFsm.Machine
+  alias XFsm.Actor
+  alias XFsm.Snapshot
 
   import XFsm.Actions
 
@@ -40,18 +41,17 @@ defmodule XFsm.MachineWithEventlessPropsTest do
     [pid: pid]
   end
 
-  test "update temp" do
-    machine = Machine.init(__MODULE__)
-    machine = Machine.transition(machine, %{type: :boil})
+  test "update temp", %{pid: pid} do
+    :ok = Actor.send(pid, %{type: :boil})
 
-    assert machine.state == :heating
+    assert %Snapshot{state: :heating} = Actor.snapshot(pid)
 
-    machine = Machine.transition(machine, %{type: :update_temp, temp: 101})
+    :ok = Actor.send(pid, %{type: :update_temp, temp: 101})
 
-    assert machine.state == :boiling
+    assert %Snapshot{state: :boiling} = Actor.snapshot(pid)
 
-    machine = Machine.transition(machine, %{type: :update_temp, temp: 50})
+    :ok = Actor.send(pid, %{type: :update_temp, temp: 50})
 
-    assert machine.state == :heating
+    assert %Snapshot{state: :heating} = Actor.snapshot(pid)
   end
 end

@@ -2,9 +2,6 @@ name: Test
 
 on: [push, pull_request]
 
-env:
-  MIX_ENV: test
-
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -33,6 +30,8 @@ jobs:
           mix credo
 
       - name: Run Tests
+        env:
+          MIX_ENV: test
         run: mix coveralls.json
 
       - name: Upload Coverage Reports

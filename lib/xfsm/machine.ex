@@ -37,7 +37,9 @@ defmodule XFsm.Machine do
       |> Keyword.validate!([:actor, :input])
       |> Map.new()
 
-    {globals, states} = module.__attr__(:states) |> extract_globals()
+    {globals, states} =
+      module.__attr__(:states)
+      |> Enum.split_with(&match?(%{name: :__global__}, &1))
 
     machine = %__MODULE__{
       actor: opts[:actor],
@@ -273,10 +275,6 @@ defmodule XFsm.Machine do
   end
 
   defp maybe_invoke_entry(_old, _new, _arg, context, _actions), do: context
-
-  defp extract_globals(states) do
-    Enum.split_with(states, &match?(%{name: :__global__}, &1))
-  end
 
   defmacro __using__(_) do
     quote do

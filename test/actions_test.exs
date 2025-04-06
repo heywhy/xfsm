@@ -35,6 +35,14 @@ defmodule XFsm.ActionsTest do
     refute_receive {:"$gen_cast", {:send, %{type: :test}}}, 11
   end
 
+  test "cancelling an unknown timer breaks nothing" do
+    arg = %{actor: self(), context: %{}}
+    context = send_event(arg, %{type: :test}, delay: 10, id: :some_id)
+
+    assert %{} = cancel(%{arg | context: context}, :unknown_id)
+    assert_receive {:"$gen_cast", {:send, %{type: :test}}}, 11
+  end
+
   test "assigns updates the context" do
     arg = %{
       context: %{value: 1},

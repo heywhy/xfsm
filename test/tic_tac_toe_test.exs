@@ -1,96 +1,9 @@
-# XFsm
-
-[![Dialyzer](https://github.com/heywhy/xfsm/actions/workflows/dialyzer.yml/badge.svg?branch=main)](https://github.com/heywhy/xfsm/actions) [![Test](https://github.com/heywhy/xfsm/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/heywhy/xfsm/actions) [![Codecov](https://codecov.io/gh/heywhy/xfsm/branch/main/graph/badge.svg?token=ZDA9GUTAFJ)](https://codecov.io/gh/heywhy/xfsm)
-
-XFsm is a declarative finite state machine library for [Elixir](https://elixir-lang.org/).
-
-It uses [event-driven](./docs/transitions.md) programming, [state machines](./docs/state-machines.md) and actors to handle complex logic in predictable and robust ways.
-
-It provides very easy to use APIs which makes looking at a declaration very easy to understand.
-
-## Installation
-
-The package can be installed by adding `xfsm` to your list of dependencies in `mix.exs`:
-
-```elixir
-def deps do
-  [
-    {:xfsm, "~> 0.3.0"}
-  ]
-end
-```
-
-## Documentation
-
-API documentation is available at <https://hexdocs.pm/xfsm>
-
-## Create a simple machine
-
-```elixir
-defmodule Counter do
+defmodule XFsm.TicTacToeTest do
+  use ExUnit.Case, async: true
   use XFsm.Actor
   use XFsm.Machine
 
-  import XFsm.Actions
-
-  context(%{count: 0})
-
-  on :inc do
-    action(assigns(%{count: & &1.context.count + 1}))
-  end
-
-  on :dec do
-    action(assigns(%{count: & &1.context.count - 1}))
-  end
-
-  on :set do
-    action(assigns(%{count: & &1.event.value}))
-  end
-end
-
-alias XFsm.Actor
-
-{:ok, pid} = Counter.start_link()
-
-Actor.subscribe(pid, fn %{context: %{count: count}} ->
-  IO.puts(count)
-end)
-
-Actor.send(pid, %{type: :inc})
-# logs 1
-
-Actor.send(pid, %{type: :dec})
-# logs 0
-
-Actor.send(pid, %{type: :set, value: 10})
-# logs 10
-```
-
-```mermaid
----
-title: Counter machine
----
-flowchart LR
-
-inc --> machine
-dec --> machine
-set --> machine
-machine --- inc
-machine --- dec
-machine --- set
-
-machine@{shape: diam, label: "Machine"}
-dec@{shape: event, label: "DEC\nassigns(...)"}
-inc@{shape: event, label: "INC\nassigns(...)"}
-set@{shape: event, label: "SET\nassigns(...)"}
-```
-
-## Create a complex machine
-
-```elixir
-defmodule TicTacToe do
-  use XFsm.Actor
-  use XFsm.Machine
+  alias XFsm.Machine
 
   import XFsm.Actions
 
@@ -215,8 +128,6 @@ defmodule TicTacToe do
   end
 
   state :end do
-    # You most likely want to persist the game state and terminate the
-    # process, assuming you're building an online multiplayer game.
   end
 
   defg can_move?(
@@ -237,8 +148,6 @@ defmodule TicTacToe do
     Board.empty?(board, square)
   end
 
-  defg(can_move?(_, _), do: false)
-
   defa make_move(%{context: %{x: x} = c, event: %{ref: x, square: index}}) do
     %{board: board} = c
     board = Board.put(board, index, :x)
@@ -257,51 +166,126 @@ defmodule TicTacToe do
        when is_reference(x) and is_reference(o) do
     %{x: x, o: o, winner: :none, board: %Board{}}
   end
+
+  setup do
+    x = make_ref()
+    o = make_ref()
+    input = %{x: x, o: o}
+
+    [x: x, o: o, input: input]
+  end
+
+  test "checks if board has three siblings on same axis" do
+    assert fill(%Board{}, {1, 2, 3}, :x) |> Board.won?(:x)
+    assert fill(%Board{}, {4, 5, 6}, :x) |> Board.won?(:x)
+    assert fill(%Board{}, {7, 8, 9}, :x) |> Board.won?(:x)
+
+    assert fill(%Board{}, {1, 4, 7}, :x) |> Board.won?(:x)
+    assert fill(%Board{}, {2, 5, 8}, :x) |> Board.won?(:x)
+    assert fill(%Board{}, {3, 6, 9}, :x) |> Board.won?(:x)
+
+    assert fill(%Board{}, {1, 5, 9}, :x) |> Board.won?(:x)
+    assert fill(%Board{}, {3, 5, 7}, :x) |> Board.won?(:x)
+  end
+
+  test "checks if the current board is a draw" do
+    refute Board.draw?(%Board{})
+    refute fill(%Board{}, {1, 2, 3}, :x) |> Board.draw?()
+
+    board = %Board{squares: {:x, :x, :o, :o, :o, :x, :x, :o, :x}}
+
+    assert Board.draw?(board)
+  end
+
+  test "machine is updated when player x makes move", %{x: x, input: input} do
+    machine =
+      __MODULE__
+      |> Machine.init(input: input)
+      |> Machine.transition(%{type: :move, square: 3, ref: x})
+
+    assert %Machine{state: :o, context: c} = machine
+    assert Board.square(c.board, 3) == :x
+  end
+
+  test "machine is updated when player o makes move", %{x: x, o: o, input: input} do
+    machine =
+      __MODULE__
+      |> Machine.init(input: input)
+      |> Machine.transition(%{type: :move, square: 3, ref: x})
+      |> Machine.transition(%{type: :move, square: 5, ref: o})
+
+    assert %Machine{state: :x, context: c} = machine
+    assert Board.square(c.board, 5) == :o
+  end
+
+  test "non-empty square can't be overriden", %{x: x, o: o, input: input} do
+    machine =
+      __MODULE__
+      |> Machine.init(input: input)
+      |> Machine.transition(%{type: :move, square: 3, ref: x})
+      |> Machine.transition(%{type: :move, square: 3, ref: o})
+
+    assert %Machine{state: :o, context: c} = machine
+    assert Board.square(c.board, 3) == :x
+  end
+
+  test "transition to end when a player x wins", %{x: x, o: o, input: input} do
+    machine = Machine.init(__MODULE__, input: input)
+
+    events = [
+      %{type: :move, ref: x, square: 5},
+      %{type: :move, ref: o, square: 3},
+      %{type: :move, ref: x, square: 6},
+      %{type: :move, ref: o, square: 1},
+      %{type: :move, ref: x, square: 4}
+    ]
+
+    machine = Enum.reduce(events, machine, &Machine.transition(&2, &1))
+
+    assert %Machine{state: :end, context: %{winner: :x}} = machine
+  end
+
+  test "transition to end when a player o wins", %{x: x, o: o, input: input} do
+    machine = Machine.init(__MODULE__, input: input)
+
+    events = [
+      %{type: :move, ref: x, square: 5},
+      %{type: :move, ref: o, square: 3},
+      %{type: :move, ref: x, square: 6},
+      %{type: :move, ref: o, square: 1},
+      %{type: :move, ref: x, square: 8},
+      %{type: :move, ref: o, square: 2}
+    ]
+
+    machine = Enum.reduce(events, machine, &Machine.transition(&2, &1))
+
+    assert %Machine{state: :end, context: %{winner: :o}} = machine
+  end
+
+  test "transition to end when the game is a draw", %{x: x, o: o, input: input} do
+    machine = Machine.init(__MODULE__, input: input)
+
+    events = [
+      %{type: :move, ref: x, square: 5},
+      %{type: :move, ref: o, square: 3},
+      %{type: :move, ref: x, square: 6},
+      %{type: :move, ref: o, square: 1},
+      %{type: :move, ref: x, square: 2},
+      %{type: :move, ref: o, square: 4},
+      %{type: :move, ref: x, square: 9},
+      %{type: :move, ref: o, square: 8},
+      %{type: :move, ref: x, square: 7}
+    ]
+
+    machine = Enum.reduce(events, machine, &Machine.transition(&2, &1))
+
+    assert %Machine{state: :end, context: %{winner: :none}} = machine
+  end
+
+  defp fill(%Board{} = board, {a, b, c}, tag) do
+    board
+    |> Board.put(a, tag)
+    |> Board.put(b, tag)
+    |> Board.put(c, tag)
+  end
 end
-
-alias XFsm.Actor
-
-# We're using references so that a player does not make a move for the other.
-# These can be user id assuming you're building an online multiplayer game.
-x = make_ref()
-o = make_ref()
-
-{:ok, pid} = TicTacToe.start_link(input: %{x: x, o: o})
-
-Actor.subscribe(pid, fn %{context: %{board: b, winner: w}} ->
-  iodata = TicTacToe.Board.to_iodata(b)
-
-  IO.puts([iodata | ["\n", "winner: ", Atom.to_string(w)]])
-end)
-
-:ok = Actor.send(pid, %{type: :move, ref: x, square: 5})
-:ok = Actor.send(pid, %{type: :move, ref: o, square: 3})
-:ok = Actor.send(pid, %{type: :move, ref: x, square: 6})
-:ok = Actor.send(pid, %{type: :move, ref: o, square: 1})
-:ok = Actor.send(pid, %{type: :move, ref: x, square: 4})
-
-XFsm.Actor.snapshot(pid)
-```
-
-```mermaid
-stateDiagram-v2
-
-state x_if_end <<choice>>
-state o_if_end <<choice>>
-
-state "player x" as x
-state "player o" as o
-
-[*] --> x
-x --> x_if_end
-x_if_end --> end: if pos = draw or win
-x --> o: move
-
-o --> o_if_end
-o_if_end --> end: if pos = draw or win
-o --> x: move
-```
-
-## License
-
-MIT

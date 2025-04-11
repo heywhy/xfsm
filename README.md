@@ -177,17 +177,6 @@ defmodule TicTacToe do
   context(%{input: i}, do: context_from_input(i))
 
   state :x do
-    always do
-      target(:end)
-      guard(%{context: %{board: b}}, do: Board.won?(b, :o))
-      action(assigns(%{winner: :o}))
-    end
-
-    always do
-      target(:end)
-      guard(%{context: %{board: b}}, do: Board.draw?(b))
-    end
-
     on :move do
       target(:o)
       guard(%{method: :can_move?, params: %{player: :x}})
@@ -196,17 +185,6 @@ defmodule TicTacToe do
   end
 
   state :o do
-    always do
-      target(:end)
-      guard(%{context: %{board: b}}, do: Board.won?(b, :x))
-      action(assigns(%{winner: :x}))
-    end
-
-    always do
-      target(:end)
-      guard(%{context: %{board: b}}, do: Board.draw?(b))
-    end
-
     on :move do
       target(:x)
       guard(%{method: :can_move?, params: %{player: :o}})
@@ -217,6 +195,25 @@ defmodule TicTacToe do
   state :end do
     # You most likely want to persist the game state and terminate the
     # process, assuming you're building an online multiplayer game.
+  end
+
+  root do
+    always do
+      target(:end)
+      guard(%{method: :won?, params: %{player: :o}})
+      action(assigns(%{winner: :o}))
+    end
+
+    always do
+      target(:end)
+      guard(%{method: :won?, params: %{player: :x}})
+      action(assigns(%{winner: :x}))
+    end
+
+    always do
+      target(:end)
+      guard(%{method: :drawn?, params: %{player: :x}})
+    end
   end
 
   defg can_move?(
@@ -237,7 +234,21 @@ defmodule TicTacToe do
     Board.empty?(board, square)
   end
 
-  defg(can_move?(_, _), do: false)
+  defg won?(
+         %{self: %{state: _}, context: %{board: _}} = arg,
+         %{player: _} = params
+       ) do
+    %{self: %{state: state}, context: %{board: board}} = arg
+    %{player: player} = params
+
+    state != :end and Board.won?(board, player)
+  end
+
+  defg drawn?(%{self: %{state: _}, context: %{board: _}} = arg) do
+    %{self: %{state: state}, context: %{board: board}} = arg
+
+    state != :end and Board.draw?(board)
+  end
 
   defa make_move(%{context: %{x: x} = c, event: %{ref: x, square: index}}) do
     %{board: board} = c

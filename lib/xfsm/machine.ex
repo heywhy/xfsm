@@ -13,6 +13,7 @@ defmodule XFsm.Machine do
     :state,
     :context,
     :actor,
+    always: [],
     events: [],
     states: [],
     actions: %{},
@@ -24,12 +25,16 @@ defmodule XFsm.Machine do
           actor: nil | pid(),
           state: nil | atom(),
           context: XFsm.context(),
+          always: [Always.t()],
           events: [Event.t()],
           states: [State.t()],
           guards: %{required(atom()) => fun()},
           actions: %{required(atom()) => fun()}
         }
 
+  # TODO: raise an error
+  # * if initial is set but there are no states defined
+  # * when there are multiple global states
   @spec init(module(), keyword()) :: t()
   def init(module, opts \\ []) do
     opts =
@@ -48,12 +53,13 @@ defmodule XFsm.Machine do
       guards: module.__attr__(:guards),
       actions: module.__attr__(:actions),
       initial: module.__attr__(:initial_state),
-      events: Enum.map(globals, & &1.events) |> Enum.flat_map(& &1)
+      events: Enum.map(globals, & &1.events) |> Enum.flat_map(& &1),
+      always: Enum.map(globals, & &1.always) |> Enum.flat_map(& &1)
     }
 
     with state when state != nil <- machine.initial,
          %{} = state <- find_state(machine, state) do
-      arg = %{actor: machine.actor}
+      arg = %{self: self(machine)}
 
       enter_state(machine, state, nil, arg)
     else
@@ -69,6 +75,10 @@ defmodule XFsm.Machine do
     end
   end
 
+  defp self(%{actor: actor, state: state}) do
+    %{pid: actor, state: state}
+  end
+
   @spec transition(t(), XFsm.event()) :: t()
   def transition(
         %__MODULE__{state: state} = machine,
@@ -82,7 +92,7 @@ defmodule XFsm.Machine do
     case maybe_find_catch_all(found, events) do
       %Event{} = e ->
         e = %{e | target: e.target || state}
-        arg = %{actor: machine.actor, event: event}
+        arg = %{event: event, self: self(machine)}
         new_state = find_state(machine, e.target)
 
         enter_state(machine, new_state, e, arg)
@@ -150,7 +160,9 @@ defmodule XFsm.Machine do
 
     machine = %{machine | state: new_state.name, context: context}
 
-    apply_always(machine, new_state, arg)
+    new_state.always
+    |> Enum.concat(machine.always)
+    |> then(&apply_always(machine, &1, arg))
   end
 
   defp enter_state(
@@ -170,10 +182,10 @@ defmodule XFsm.Machine do
     %{machine | context: context}
   end
 
-  defp apply_always(machine, new_state, arg) do
+  defp apply_always(machine, always, arg) do
     %{actions: actions, context: context} = machine
 
-    matched = Enum.find(new_state.always, &allowed?(&1.guard, arg[:event], machine))
+    matched = Enum.find(always, &allowed?(&1.guard, arg[:event], machine))
 
     case matched do
       %Always{target: t} = m when not is_nil(t) ->
@@ -206,11 +218,12 @@ defmodule XFsm.Machine do
 
   defp allowed?(guard, event, machine) do
     %{context: context, guards: guards} = machine
+    self = self(machine)
 
     arg =
       case event do
-        nil -> %{context: context}
-        event -> %{context: context, event: event}
+        nil -> %{context: context, self: self}
+        event -> %{context: context, event: event, self: self}
       end
 
     invoke(guard, arg, guards)

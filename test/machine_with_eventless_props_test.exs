@@ -31,8 +31,10 @@ defmodule XFsm.MachineWithEventlessPropsTest do
     end
   end
 
-  on :update_temp do
-    action(assigns(%{temp: & &1.event.temp}))
+  root do
+    on :update_temp do
+      action(assigns(%{temp: & &1.event.temp}))
+    end
   end
 
   setup do

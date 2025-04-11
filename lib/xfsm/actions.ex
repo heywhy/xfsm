@@ -9,7 +9,12 @@ defmodule XFsm.Actions do
   @spec send_event(XFsm.action_arg(), map() | fun(), keyword()) :: XFsm.context()
   def send_event(arg, event, opts \\ [])
 
-  def send_event(%{actor: pid, context: context}, %{type: _} = event, opts) when is_pid(pid) do
+  def send_event(
+        %{self: %{pid: pid}, context: context},
+        %{type: _} = event,
+        opts
+      )
+      when is_pid(pid) do
     case opts[:delay] do
       nil ->
         Actor.send(pid, event)

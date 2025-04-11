@@ -10,16 +10,18 @@ defmodule XFsm.MachineWithTopLevelEventsTest do
 
   context(%{count: 0})
 
-  on :inc do
-    action(assigns(%{count: &(&1.context.count + 1)}))
-  end
+  root do
+    on :inc do
+      action(assigns(%{count: &(&1.context.count + 1)}))
+    end
 
-  on :dec do
-    action(assigns(%{count: &(&1.context.count - 1)}))
-  end
+    on :dec do
+      action(assigns(%{count: &(&1.context.count - 1)}))
+    end
 
-  on :set do
-    action(assigns(%{count: & &1.event.value}))
+    on :set do
+      action(assigns(%{count: & &1.event.value}))
+    end
   end
 
   setup do

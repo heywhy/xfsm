@@ -25,8 +25,10 @@ defmodule XFsm.MachineWithActionsTest do
     end
   end
 
-  on :* do
-    action(%{event: e}, do: IO.puts("Unhandled event: #{inspect(e)}"))
+  root do
+    on :* do
+      action(%{event: e}, do: IO.puts("Unhandled event: #{inspect(e)}"))
+    end
   end
 
   defa activate() do

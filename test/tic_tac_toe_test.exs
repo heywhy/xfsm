@@ -90,17 +90,6 @@ defmodule XFsm.TicTacToeTest do
   context(%{input: i}, do: context_from_input(i))
 
   state :x do
-    always do
-      target(:end)
-      guard(%{context: %{board: b}}, do: Board.won?(b, :o))
-      action(assigns(%{winner: :o}))
-    end
-
-    always do
-      target(:end)
-      guard(%{context: %{board: b}}, do: Board.draw?(b))
-    end
-
     on :move do
       target(:o)
       guard(%{method: :can_move?, params: %{player: :x}})
@@ -109,17 +98,6 @@ defmodule XFsm.TicTacToeTest do
   end
 
   state :o do
-    always do
-      target(:end)
-      guard(%{context: %{board: b}}, do: Board.won?(b, :x))
-      action(assigns(%{winner: :x}))
-    end
-
-    always do
-      target(:end)
-      guard(%{context: %{board: b}}, do: Board.draw?(b))
-    end
-
     on :move do
       target(:x)
       guard(%{method: :can_move?, params: %{player: :o}})
@@ -128,6 +106,25 @@ defmodule XFsm.TicTacToeTest do
   end
 
   state :end do
+  end
+
+  root do
+    always do
+      target(:end)
+      guard(%{method: :won?, params: %{player: :o}})
+      action(assigns(%{winner: :o}))
+    end
+
+    always do
+      target(:end)
+      guard(%{method: :won?, params: %{player: :x}})
+      action(assigns(%{winner: :x}))
+    end
+
+    always do
+      target(:end)
+      guard(%{method: :drawn?, params: %{player: :x}})
+    end
   end
 
   defg can_move?(
@@ -146,6 +143,22 @@ defmodule XFsm.TicTacToeTest do
     %{context: %{board: board}, event: %{square: square}} = arg
 
     Board.empty?(board, square)
+  end
+
+  defg won?(
+         %{self: %{state: _}, context: %{board: _}} = arg,
+         %{player: _} = params
+       ) do
+    %{self: %{state: state}, context: %{board: board}} = arg
+    %{player: player} = params
+
+    state != :end and Board.won?(board, player)
+  end
+
+  defg drawn?(%{self: %{state: _}, context: %{board: _}} = arg) do
+    %{self: %{state: state}, context: %{board: board}} = arg
+
+    state != :end and Board.draw?(board)
   end
 
   defa make_move(%{context: %{x: x} = c, event: %{ref: x, square: index}}) do

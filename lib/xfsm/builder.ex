@@ -32,6 +32,8 @@ defmodule XFsm.Builder do
     end
   end
 
+  # TODO: dispatch a function to the large bulk of codegen
+  # see https://hexdocs.pm/elixir/macro-anti-patterns.html#large-code-generation
   defmacro state(name, do: block) when is_atom(name) do
     opts = %{
       methods: [],
@@ -104,34 +106,9 @@ defmodule XFsm.Builder do
     end
   end
 
-  defmacro on(name, do: block) when is_atom(name) do
-    opts = %{
-      methods: [],
-      state: :__machine__,
-      module: __CALLER__.module
-    }
-
-    {expr, opts} =
-      add_event(
-        {:on, [], [name, [do: block]]},
-        {:state, [], __MODULE__},
-        opts
-      )
-
-    expr =
-      quote do
-        state = unquote(expr)
-      end
-
-    methods = Macro.escape(opts.methods)
-
+  defmacro root(do: block) do
     quote do
-      state = %State{name: :__global__}
-
-      unquote(expr)
-
-      @states state
-      @methods unquote(methods)
+      state(:__global__, do: unquote(block))
     end
   end
 
@@ -219,6 +196,9 @@ defmodule XFsm.Builder do
         fn
           {field, _, [value]}, {exprs, opts} when is_atom(value) ->
             {add_attr(exprs, field, value), opts}
+
+          {field, _, [{:%{}, _, _} = expr]}, {exprs, opts} ->
+            {add_attr(exprs, field, expr), opts}
 
           {attr, _, _} = expr, acc when attr in [:action, :guard] ->
             add_event_handler(:always, expr, acc)

@@ -33,6 +33,8 @@ When a machine starts, it first enters the **initial state**. A machine cannot h
 >
 > A state machine can only be in one state at a time.
 
+[Read more about states](./state.md)
+
 ### States in XFsm
 
 In XFsm, states are defined using the `state` attribute.
@@ -72,6 +74,8 @@ on --> off: turn_off
 
 With its two finite states and transitions, this lightbulb process is a *Finite State Machine*. A state machine is used to describe the behavior of something. The machine outlines the thing’s states and the transitions between them. It’s considered a Finite State Machine because it has a finite number of states.
 
+[Read more about transitions and events](./transitions.md)
+
 ### Events and Transitions in XFsm
 
 Events and transitions are defined in XFsm state machines inside the `on` property of a state.
@@ -95,3 +99,20 @@ end
 ## Final State
 
 Most processes with states will have a final state, which is the last state when the process is completed.
+
+## Self-transition
+
+Self-transition happens when an event occurs, but the transition returns to the same state. The transition arrows exits and re-enter the same state.
+
+A helpful way to describe a self-transition is “doing something, not going somewhere” in the process.
+
+```mermaid
+stateDiagram-v2
+
+state "state" as a
+
+[*] --> a
+a --> a: transition
+```
+
+[Read more about self transitions](./eventless-transitions.md)

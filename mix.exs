@@ -77,6 +77,7 @@ defmodule XFsm.MixProject do
         {:"docs/state-machines.md", [title: "State machines"]},
         {:"README.md", [title: "What is XFsm"]},
         "docs/machines.md",
+        "docs/state.md",
         "docs/input.md",
         "docs/transitions.md",
         "docs/eventless-transitions.md",
@@ -92,6 +93,7 @@ defmodule XFsm.MixProject do
         "Core concept": ["docs/state-machines.md", "README.md"],
         "State machines": [
           "docs/machines.md",
+          "docs/state.md",
           "docs/input.md",
           "docs/transitions.md",
           "docs/eventless-transitions.md",

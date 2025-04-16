@@ -15,7 +15,7 @@ The package can be installed by adding `xfsm` to your list of dependencies in `m
 ```elixir
 def deps do
   [
-    {:xfsm, "~> 0.3.0"}
+    {:xfsm, "~> 0.4.0"}
   ]
 end
 ```

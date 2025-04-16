@@ -5,6 +5,15 @@ See [Conventional Commits](Https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
+## [v0.5.0](https://github.com/heywhy/xfsm/compare/v0.4.0...v0.5.0) (2025-04-16)
+
+
+
+
+### Features:
+
+* support function guards for defa and defg
+
 ## [v0.4.0](https://github.com/heywhy/xfsm/compare/v0.3.0...v0.4.0) (2025-04-16)
 
 

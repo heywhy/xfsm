@@ -1,7 +1,5 @@
 defmodule XFsm.Application do
-  @moduledoc """
-  Documentation for `XFsm.Application`.
-  """
+  @moduledoc false
   use Application
 
   alias XFsm.Timers

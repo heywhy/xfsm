@@ -115,16 +115,25 @@ defmodule XFsm.Builder do
   defmacro defa({method, _, arguments}, do: block) do
     %{module: module} = __CALLER__
 
-    gen_method(module, :action, method, arguments, do: block)
+    gen_method(module, :action, method, arguments, block)
   end
 
   defmacro defg({method, _, arguments}, do: block) do
     %{module: module} = __CALLER__
 
-    gen_method(module, :guard, method, arguments, do: block)
+    gen_method(module, :guard, method, arguments, block)
   end
 
-  defp gen_method(module, sect, name, arguments, do: block) when is_atom(name) do
+  defp gen_method(module, sect, method, arguments, block, guards \\ nil)
+
+  defp gen_method(module, sect, :when, arguments, block, nil) do
+    [{method, _, arguments}, guards] = arguments
+
+    gen_method(module, sect, method, arguments, block, guards)
+  end
+
+  defp gen_method(module, sect, name, arguments, block, guards) when is_atom(name) do
+    guarded? = not is_nil(guards)
     method_def = {module, sect, name, {}, {}}
     method = method_def_to_name(method_def)
 
@@ -145,8 +154,14 @@ defmodule XFsm.Builder do
         {unquote(name), unquote(fun)}
       )
 
-      def unquote(method)(unquote_splicing(arguments)) do
-        unquote(block)
+      if unquote(guarded?) do
+        def unquote(method)(unquote_splicing(arguments)) when unquote(guards) do
+          unquote(block)
+        end
+      else
+        def unquote(method)(unquote_splicing(arguments)) do
+          unquote(block)
+        end
       end
     end
   end

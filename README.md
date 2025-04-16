@@ -217,18 +217,20 @@ defmodule TicTacToe do
   end
 
   defg can_move?(
-         %{context: %{x: x}, event: %{ref: x, square: _}} = arg,
+         %{context: %{x: x}, event: %{ref: x, square: s}} = arg,
          %{player: :x}
-       ) do
+       )
+       when is_integer(s) and s >= 1 and s <= 9 do
     %{context: %{board: board}, event: %{square: square}} = arg
 
     Board.empty?(board, square)
   end
 
   defg can_move?(
-         %{context: %{o: o}, event: %{ref: o, square: _}} = arg,
+         %{context: %{o: o}, event: %{ref: o, square: s}} = arg,
          %{player: :o}
-       ) do
+       )
+       when is_integer(s) and s >= 1 and s <= 9 do
     %{context: %{board: board}, event: %{square: square}} = arg
 
     Board.empty?(board, square)
@@ -236,8 +238,9 @@ defmodule TicTacToe do
 
   defg won?(
          %{self: %{state: _}, context: %{board: _}} = arg,
-         %{player: _} = params
-       ) do
+         %{player: player} = params
+       )
+       when player in [:x, :o] do
     %{self: %{state: state}, context: %{board: board}} = arg
     %{player: player} = params
 
@@ -250,16 +253,18 @@ defmodule TicTacToe do
     state != :end and Board.draw?(board)
   end
 
-  defa make_move(%{context: %{x: x} = c, event: %{ref: x, square: index}}) do
+  defa make_move(%{context: %{x: x} = c, event: %{ref: x, square: s}})
+       when is_integer(s) and s >= 1 and s <= 9 do
     %{board: board} = c
-    board = Board.put(board, index, :x)
+    board = Board.put(board, s, :x)
 
     %{c | board: board}
   end
 
-  defa make_move(%{context: %{o: o} = c, event: %{ref: o, square: index}}) do
+  defa make_move(%{context: %{o: o} = c, event: %{ref: o, square: s}})
+       when is_integer(s) and s >= 1 and s <= 9 do
     %{board: board} = c
-    board = Board.put(board, index, :o)
+    board = Board.put(board, s, :o)
 
     %{c | board: board}
   end

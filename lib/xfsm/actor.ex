@@ -45,14 +45,17 @@ defmodule XFsm.Actor do
 
   @impl GenServer
   def handle_call(:snapshot, _from, %{machine: machine} = state) do
-    snapshot = %Snapshot{state: machine.state, context: machine.context}
+    snapshot = snapshot_from_machine(machine)
 
     {:reply, snapshot, state}
   end
 
-  def handle_call({:subscribe, fun}, _from, %{subs: subs} = state) do
+  def handle_call({:subscribe, fun}, _from, %{subs: subs, machine: machine} = state) do
     ref = make_ref()
     subs = Map.put(subs, ref, fun)
+    snapshot = snapshot_from_machine(machine)
+
+    Process.spawn(fn -> fun.(snapshot) end, [])
 
     {:reply, ref, %{state | subs: subs}}
   end
@@ -77,13 +80,17 @@ defmodule XFsm.Actor do
   @impl GenServer
   def handle_info(:notify_subs, state) do
     %{machine: machine, subs: subs} = state
-    snapshot = %Snapshot{state: machine.state, context: machine.context}
+    snapshot = snapshot_from_machine(machine)
 
     for {_, fun} <- subs do
       Process.spawn(fn -> fun.(snapshot) end, [])
     end
 
     {:noreply, state}
+  end
+
+  defp snapshot_from_machine(machine) do
+    %Snapshot{state: machine.state, context: machine.context}
   end
 
   defmacro __using__(spec \\ []) do

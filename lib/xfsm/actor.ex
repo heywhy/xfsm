@@ -25,9 +25,9 @@ defmodule XFsm.Actor do
 
   @spec start_link(keyword()) :: GenServer.on_start()
   def start_link(opts \\ []) do
-    actor_opts = Keyword.take(opts, ~w[debug hibernate_after name spawn_opt timeout]a)
+    {gen_opts, opts} = Keyword.split(opts, ~w[debug hibernate_after name spawn_opt timeout]a)
 
-    GenServer.start_link(__MODULE__, opts, actor_opts)
+    GenServer.start_link(__MODULE__, opts, gen_opts)
   end
 
   @impl GenServer

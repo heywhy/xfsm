@@ -37,10 +37,12 @@ defmodule XFsm.Machine do
   # * when there are multiple global states
   @spec init(module(), keyword()) :: t()
   def init(module, opts \\ []) do
-    opts =
-      opts
-      |> Keyword.validate!([:actor, :input])
-      |> Map.new()
+    opts = Keyword.validate!(opts, [:actor, :input, :actions, :guards])
+    {guards, opts} = Keyword.pop(opts, :guards, %{})
+    {actions, opts} = Keyword.pop(opts, :actions, %{})
+
+    guards = module.__attr__(:guards) |> Map.merge(guards)
+    actions = module.__attr__(:actions) |> Map.merge(actions)
 
     {globals, states} =
       module.__attr__(:states)
@@ -49,10 +51,10 @@ defmodule XFsm.Machine do
     machine = %__MODULE__{
       actor: opts[:actor],
       states: states,
-      context: module.__context__(opts),
-      guards: module.__attr__(:guards),
-      actions: module.__attr__(:actions),
+      guards: guards,
+      actions: actions,
       initial: module.__attr__(:initial_state),
+      context: module.__context__(%{input: opts[:input]}),
       events: Enum.map(globals, & &1.events) |> Enum.flat_map(& &1),
       always: Enum.map(globals, & &1.always) |> Enum.flat_map(& &1)
     }

@@ -77,6 +77,7 @@ defmodule XFsm.Actor do
 
   # INFO: find an efficient approach to pass snapshot around assuming
   # an actor state/context is too large.
+  # TODO: maybe compare old and new state to decide whether to invoke listeners
   @impl GenServer
   def handle_info(:notify_subs, state) do
     %{machine: machine, subs: subs} = state

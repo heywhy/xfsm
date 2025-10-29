@@ -4,7 +4,7 @@ defmodule XFsm.Application do
 
   alias XFsm.Timers
 
-  @impl true
+  @impl Application
   def start(_, _) do
     children = [Timers]
 

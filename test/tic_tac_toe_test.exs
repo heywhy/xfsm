@@ -192,21 +192,21 @@ defmodule XFsm.TicTacToeTest do
   end
 
   test "checks if board has three siblings on same axis" do
-    assert fill(%Board{}, {1, 2, 3}, :x) |> Board.won?(:x)
-    assert fill(%Board{}, {4, 5, 6}, :x) |> Board.won?(:x)
-    assert fill(%Board{}, {7, 8, 9}, :x) |> Board.won?(:x)
+    assert %Board{} |> fill({1, 2, 3}, :x) |> Board.won?(:x)
+    assert %Board{} |> fill({4, 5, 6}, :x) |> Board.won?(:x)
+    assert %Board{} |> fill({7, 8, 9}, :x) |> Board.won?(:x)
 
-    assert fill(%Board{}, {1, 4, 7}, :x) |> Board.won?(:x)
-    assert fill(%Board{}, {2, 5, 8}, :x) |> Board.won?(:x)
-    assert fill(%Board{}, {3, 6, 9}, :x) |> Board.won?(:x)
+    assert %Board{} |> fill({1, 4, 7}, :x) |> Board.won?(:x)
+    assert %Board{} |> fill({2, 5, 8}, :x) |> Board.won?(:x)
+    assert %Board{} |> fill({3, 6, 9}, :x) |> Board.won?(:x)
 
-    assert fill(%Board{}, {1, 5, 9}, :x) |> Board.won?(:x)
-    assert fill(%Board{}, {3, 5, 7}, :x) |> Board.won?(:x)
+    assert %Board{} |> fill({1, 5, 9}, :x) |> Board.won?(:x)
+    assert %Board{} |> fill({3, 5, 7}, :x) |> Board.won?(:x)
   end
 
   test "checks if the current board is a draw" do
     refute Board.draw?(%Board{})
-    refute fill(%Board{}, {1, 2, 3}, :x) |> Board.draw?()
+    refute %Board{} |> fill({1, 2, 3}, :x) |> Board.draw?()
 
     board = %Board{squares: {:x, :x, :o, :o, :o, :x, :x, :o, :x}}
 

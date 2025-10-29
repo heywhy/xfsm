@@ -2,9 +2,9 @@ defmodule XFsm.MachineWithActionsTest do
   use ExUnit.Case, async: true
   use XFsm.Machine
 
-  alias XFsm.Machine
-
   import ExUnit.CaptureIO
+
+  alias XFsm.Machine
 
   initial(:active)
 

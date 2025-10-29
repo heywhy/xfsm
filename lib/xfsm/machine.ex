@@ -53,7 +53,8 @@ defmodule XFsm.Machine do
     actions = Map.merge(@defaults, Map.drop(actions, @default_actions))
 
     {globals, states} =
-      module.__attr__(:states)
+      :states
+      |> module.__attr__()
       |> Enum.split_with(&match?(%{name: :__global__}, &1))
 
     machine = %__MODULE__{
@@ -63,8 +64,8 @@ defmodule XFsm.Machine do
       actions: actions,
       initial: module.__attr__(:initial_state),
       context: module.__context__(%{input: opts[:input]}),
-      events: Enum.map(globals, & &1.events) |> Enum.flat_map(& &1),
-      always: Enum.map(globals, & &1.always) |> Enum.flat_map(& &1)
+      events: globals |> Enum.map(& &1.events) |> Enum.flat_map(& &1),
+      always: globals |> Enum.map(& &1.always) |> Enum.flat_map(& &1)
     }
 
     with state when state != nil <- machine.initial,
@@ -198,18 +199,18 @@ defmodule XFsm.Machine do
     matched = Enum.find(always, &allowed?(&1.guard, arg[:event], machine))
 
     case matched do
-      %Always{target: t} = m when not is_nil(t) ->
+      %Always{target: nil} = m ->
         context = reduce_cbs(m.action, context, arg, actions)
-        machine = %{machine | context: context}
-
-        case find_state(machine, t) do
-          nil -> machine
-          state -> enter_state(machine, state, nil, arg)
-        end
+        %{machine | context: context}
 
       %Always{} = m ->
         context = reduce_cbs(m.action, context, arg, actions)
-        %{machine | context: context}
+        machine = %{machine | context: context}
+
+        case find_state(machine, m.target) do
+          nil -> machine
+          state -> enter_state(machine, state, nil, arg)
+        end
 
       _ ->
         machine

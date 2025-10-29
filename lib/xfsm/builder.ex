@@ -126,6 +126,7 @@ defmodule XFsm.Builder do
       end
 
     quote do
+      # credo:disable-for-next-line
       struct!(unquote(acc), [{unquote(attr), {:"xfsm.#{unquote(action)}", unquote(ast)}}])
     end
   end
@@ -199,7 +200,7 @@ defmodule XFsm.Builder do
   end
 
   defp method_capture_to_ast(module, method, arity) do
-    aliases = Module.split(module) |> Enum.map(&String.to_atom/1)
+    aliases = module |> Module.split() |> Enum.map(&String.to_atom/1)
 
     {:&, [],
      [

@@ -5,6 +5,21 @@ See [Conventional Commits](Https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
+## [v0.6.0-rc.0](https://github.com/heywhy/xfsm/compare/v0.5.0...v0.6.0-rc.0) (2025-10-29)
+
+
+
+
+### Features:
+
+* support overriding default implementations by atanda rasheed
+
+### Bug Fixes:
+
+* change machine api and improve codegen by Rasheed Atanda
+
+* call subscriber right after subscription by atanda rasheed
+
 ## [v0.5.0](https://github.com/heywhy/xfsm/compare/v0.4.0...v0.5.0) (2025-04-16)
 
 

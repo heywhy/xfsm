@@ -1,7 +1,7 @@
 defmodule XFsm.MixProject do
   use Mix.Project
 
-  @version "0.5.0"
+  @version "0.6.0-rc.0"
   @source_url "https://github.com/heywhy/xfsm"
 
   def project do

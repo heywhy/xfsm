@@ -1,1 +1,1 @@
-# Transitions
+# Events and Transitions

@@ -11,8 +11,10 @@ defmodule XFsm.MachineWithInputAndOutputTest do
   context(%{input: input}, do: %{message: "Hello, #{input.name}"})
 
   state :active do
-    entry(%{context: context}, do: IO.puts(context.message))
+    entry(:log)
   end
+
+  def log(%{context: context}), do: IO.puts(context.message)
 
   test "pass input as argument to context" do
     {machine, output} = with_io(fn -> Machine.init(__MODULE__, input: %{name: "David"}) end)

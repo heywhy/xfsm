@@ -6,15 +6,27 @@ defmodule XFsm.Actions do
   alias XFsm.Actor
   alias XFsm.Timers
 
-  @spec send_event(XFsm.action_arg(), map() | fun(), keyword()) :: XFsm.context()
-  def send_event(arg, event, opts \\ [])
+  @spec send_event(XFsm.action_arg(), map() | fun() | keyword()) :: XFsm.context()
+  def send_event(arg, %{type: _} = event) do
+    do_send_event(arg, event, [])
+  end
 
-  def send_event(
-        %{self: %{pid: pid}, context: context},
-        %{type: _} = event,
-        opts
-      )
-      when is_pid(pid) do
+  def send_event(arg, opts) when is_list(opts) do
+    {event, opts} = Keyword.pop!(opts, :event)
+
+    do_send_event(arg, event, opts)
+  end
+
+  def send_event(arg, fun) when is_function(fun, 1) do
+    send_event(arg, fun.(arg))
+  end
+
+  defp do_send_event(
+         %{self: %{pid: pid}, context: context},
+         %{type: _} = event,
+         opts
+       )
+       when is_pid(pid) do
     case opts[:delay] do
       nil ->
         Actor.send(pid, event)
@@ -30,10 +42,6 @@ defmodule XFsm.Actions do
     context
   end
 
-  def send_event(arg, fun, opts) when is_function(fun, 1) do
-    send_event(arg, fun.(arg), opts)
-  end
-
   @spec cancel(XFsm.action_arg(), term()) :: XFsm.context()
   def cancel(%{context: context}, id) do
     case Timers.remove(id) do
@@ -44,8 +52,13 @@ defmodule XFsm.Actions do
     context
   end
 
-  @spec assigns(XFsm.action_arg(), map()) :: XFsm.context()
-  def assigns(%{context: context} = arg, %{} = attrs) do
+  @spec assign(XFsm.action_arg(), map() | (XFsm.action_arg() -> map())) ::
+          {:update, XFsm.context()}
+  def assign(arg, fun) when is_function(fun, 1) do
+    assign(arg, fun.(arg))
+  end
+
+  def assign(%{context: context} = arg, %{} = attrs) do
     changes =
       Enum.reduce(attrs, %{}, fn
         {key, fun}, changes when is_function(fun) ->
@@ -55,6 +68,8 @@ defmodule XFsm.Actions do
           Map.put(changes, key, value)
       end)
 
-    Map.merge(context, changes)
+    {:update, Map.merge(context, changes)}
   end
+
+  def assigns(arg, attrs), do: assign(arg, attrs)
 end

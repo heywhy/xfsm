@@ -21,31 +21,35 @@ defmodule XFsm.MachineWithActionsTest do
   state :inactive do
     on :toggle do
       target(:active)
-      action(%{method: :notify, params: %{message: "Some notification"}})
+      action(:notify, %{message: "Some notification"})
     end
   end
 
   root do
     on :* do
-      action(%{event: e}, do: IO.puts("Unhandled event: #{inspect(e)}"))
+      action(:catch_all)
     end
   end
 
-  defa activate() do
+  def activate(_) do
     IO.puts("Activating")
   end
 
-  defa deactivate() do
+  def deactivate(_) do
     IO.puts("Deactivating")
   end
 
-  defa notify(_, %{message: message}) do
+  def notify(arg), do: notify(arg, %{})
+
+  def notify(_, %{message: message}) do
     IO.puts(message)
   end
 
-  defa notify(_, _) do
+  def notify(_, _) do
     IO.puts("Default message")
   end
+
+  def catch_all(%{event: e}), do: IO.puts("Unhandled event: #{inspect(e)}")
 
   test "outputs in the order of method execution" do
     {machine, output} =

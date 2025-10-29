@@ -3,6 +3,7 @@ defmodule XFsm.Machine do
   Documentation for `XFsm.Machine`.
   """
 
+  alias XFsm.Actions
   alias XFsm.Always
   alias XFsm.Event
   alias XFsm.State
@@ -32,6 +33,14 @@ defmodule XFsm.Machine do
           actions: %{required(atom()) => fun()}
         }
 
+  @defaults %{
+    "xfsm.assign": &Actions.assign/2,
+    "xfsm.cancel": &Actions.cancel/2,
+    "xfsm.send_event": &Actions.send_event/2
+  }
+
+  @default_actions Map.keys(@defaults)
+
   # TODO: raise an error
   # * if initial is set but there are no states defined
   # * when there are multiple global states
@@ -41,8 +50,7 @@ defmodule XFsm.Machine do
     {guards, opts} = Keyword.pop(opts, :guards, %{})
     {actions, opts} = Keyword.pop(opts, :actions, %{})
 
-    guards = module.__attr__(:guards) |> Map.merge(guards)
-    actions = module.__attr__(:actions) |> Map.merge(actions)
+    actions = Map.merge(@defaults, Map.drop(actions, @default_actions))
 
     {globals, states} =
       module.__attr__(:states)
@@ -191,11 +199,7 @@ defmodule XFsm.Machine do
 
     case matched do
       %Always{target: t} = m when not is_nil(t) ->
-        context =
-          m.action
-          |> List.wrap()
-          |> reduce_cbs(context, arg, actions)
-
+        context = reduce_cbs(m.action, context, arg, actions)
         machine = %{machine | context: context}
 
         case find_state(machine, t) do
@@ -204,11 +208,7 @@ defmodule XFsm.Machine do
         end
 
       %Always{} = m ->
-        context =
-          m.action
-          |> List.wrap()
-          |> reduce_cbs(context, arg, actions)
-
+        context = reduce_cbs(m.action, context, arg, actions)
         %{machine | context: context}
 
       _ ->
@@ -235,43 +235,54 @@ defmodule XFsm.Machine do
 
   defp reduce_cbs(nil, context, _arg, _actions), do: context
 
-  defp reduce_cbs(fun, context, arg, actions)
-       when is_atom(fun) or is_function(fun) or is_map(fun) do
-    reduce_cbs([fun], context, arg, actions)
-  end
-
   defp reduce_cbs(fns, context, arg, actions) when is_list(fns) do
     Enum.reduce(fns, context, fn fun, context ->
       arg = Map.put(arg, :context, context)
 
-      invoke(fun, arg, actions)
+      # match against `xfsm.assign`
+      case invoke(fun, arg, actions) do
+        {:update, context} -> context
+        _ -> context
+      end
     end)
+  end
+
+  defp reduce_cbs(fun, context, arg, actions) do
+    fun
+    |> List.wrap()
+    |> reduce_cbs(context, arg, actions)
   end
 
   defp invoke(fun, arg, actions) do
     {fun, arg, params} =
       case fun do
-        fun when is_atom(fun) ->
-          {Map.fetch!(actions, fun), arg, nil}
-
-        %{method: fun, params: params} when is_atom(fun) ->
-          params = maybe_invoke_params(params, arg)
-
+        {fun, params} when is_atom(fun) ->
           {Map.fetch!(actions, fun), arg, params}
 
-        fun ->
+        {fun, params} when is_function(fun) ->
+          {fun, arg, params}
+
+        fun when is_function(fun) ->
           {fun, arg, nil}
       end
 
-    cond do
-      is_function(fun, 2) -> fun.(arg, params)
-      is_function(fun, 1) -> fun.(arg)
-      true -> fun.()
+    fun = find_override_action(fun, actions)
+
+    case {fun, params} do
+      {fun, nil} -> fun.(arg)
+      {fun, params} -> fun.(arg, params)
     end
   end
 
-  defp maybe_invoke_params(fun, arg) when is_function(fun, 1), do: fun.(arg)
-  defp maybe_invoke_params(params, _arg), do: params
+  def find_override_action(fun, actions) do
+    with {:type, :external} <- Function.info(fun, :type),
+         {:module, mod} when mod != Actions <- Function.info(fun, :module),
+         {:name, name} <- Function.info(fun, :name) do
+      actions[name] || fun
+    else
+      _ -> fun
+    end
+  end
 
   defp maybe_invoke_exits(%{name: old} = o, %{name: new}, arg, context, actions)
        when old != new do

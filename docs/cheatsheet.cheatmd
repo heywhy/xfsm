@@ -16,7 +16,7 @@ defmodule ToggleMachine do
   context(%{count: 0})
 
   state :active do
-    entry(assigns(%{count: &(&1.context.count +1)}))
+    entry(:assign, &increment/1)
 
     on :toggle, do: target(:inactive)
   end
@@ -24,6 +24,8 @@ defmodule ToggleMachine do
   state :inactive do
     on :toggle, do: target(:active)
   end
+
+  def increment(%{context: context}), do: %{count: context.count + 1}
 end
 
 alias XFsm.Actor
@@ -66,16 +68,13 @@ defmodule ToggleMachine do
   state :active do
     on :toggle do
       target(:inactive)
-      guard(%{
-        method: :after_time?,
-        params: %{time: "00:00"}
-      })
+      guard(:after_time?, %{time: "00:00"})
     end
   end
 
-  defg toggle?(%{context: context}), do: context.activate?
+  def toggle?(%{context: context}), do: context.activate?
 
-  defg after_time?(_, %{time: time}) do
+  def after_time?(_, %{time: time}) do
     now = DateTime.utc_now()
     [hour, minute] = String.split(time, ":")
     {hour, ""} = Integer.parse(hour)
@@ -84,7 +83,7 @@ defmodule ToggleMachine do
     now.hour > hour and now.minute > minute
   end
 
-  defa notify_not_allowed(%{context: context}) do
+  def notify_not_allowed(%{context: context}) do
     IO.puts("Cannot be toggled")
     context
   end
@@ -113,22 +112,23 @@ defmodule ToggleMachine do
   state :inactive do
     on :toggle do
       target(:active)
-      action(%{
-        method: :notify,
-        params: %{message: "Some notification"}
-      })
+      action(:notify, %{message: "Some notification"})
     end
   end
 
-  defa activate(_) do
+  def activate(_) do
     # ...
   end
 
-  defa deactivate(_) do
+  def deactivate(_) do
     # ...
   end
 
-  defa notify(_,  %{message: _}) do
+  def notify(_) do
+    # ...
+  end
+
+  def notify(_,  %{message: _}) do
     # ...
   end
 end

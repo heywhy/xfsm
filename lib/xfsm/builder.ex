@@ -36,8 +36,8 @@ defmodule XFsm.Builder do
   # see https://hexdocs.pm/elixir/macro-anti-patterns.html#large-code-generation
   defmacro state(name, do: block) when is_atom(name) do
     opts = %{
-      methods: [],
       state: name,
+      env: __CALLER__,
       module: __CALLER__.module
     }
 
@@ -47,54 +47,42 @@ defmodule XFsm.Builder do
         expr -> [expr]
       end
 
-    {exprs, opts} =
+    exprs =
       Enum.reduce(
         statements,
-        {[], opts},
+        [],
         fn
-          {attr, _, [action]}, {exprs, opts} when attr in [:entry, :exit] and is_atom(action) ->
-            expr = add_attr({:state, [], __MODULE__}, attr, action)
+          {attr, _, _} = expr, exprs when attr in ~w[entry exit]a ->
+            expr = do_add_state_attr(expr, {:state, [], __MODULE__}, opts)
 
             e =
               quote do
                 state = unquote(expr)
               end
 
-            {[e] ++ exprs, opts}
+            [e] ++ exprs
 
-          {attr, _, _} = expr, {exprs, opts} when attr in [:entry, :exit] ->
-            {expr, opts} = add_attr(expr, {:state, [], __MODULE__}, attr, opts)
-
-            e =
-              quote do
-                state = unquote(expr)
-              end
-
-            {[e] ++ exprs, opts}
-
-          {:on, _, _} = expr, {exprs, opts} ->
-            {expr, opts} = add_event(expr, {:state, [], __MODULE__}, opts)
+          {:on, _, _} = expr, exprs ->
+            expr = add_event(expr, {:state, [], __MODULE__}, opts)
 
             e =
               quote do
                 state = unquote(expr)
               end
 
-            {[e] ++ exprs, opts}
+            [e] ++ exprs
 
-          {:always, _, _} = expr, {exprs, opts} ->
-            {expr, opts} = add_always(expr, {:state, [], __MODULE__}, opts)
+          {:always, _, _} = expr, exprs ->
+            expr = add_always(expr, {:state, [], __MODULE__}, opts)
 
             e =
               quote do
                 state = unquote(expr)
               end
 
-            {[e] ++ exprs, opts}
+            [e] ++ exprs
         end
       )
-
-    methods = Macro.escape(opts.methods)
 
     quote do
       state = %State{name: unquote(name)}
@@ -102,7 +90,6 @@ defmodule XFsm.Builder do
       unquote_splicing(exprs)
 
       @states state
-      @methods unquote(methods)
     end
   end
 
@@ -112,89 +99,65 @@ defmodule XFsm.Builder do
     end
   end
 
-  defmacro defa({method, _, arguments}, do: block) do
-    %{module: module} = __CALLER__
-
-    gen_method(module, :action, method, arguments, block)
+  defp do_add_state_attr(expr, var, opts) do
+    do_add_event_attr(expr, opts, var)
   end
 
-  defmacro defg({method, _, arguments}, do: block) do
-    %{module: module} = __CALLER__
-
-    gen_method(module, :guard, method, arguments, block)
-  end
-
-  defp gen_method(module, sect, method, arguments, block, guards \\ nil)
-
-  defp gen_method(module, sect, :when, arguments, block, nil) do
-    [{method, _, arguments}, guards] = arguments
-
-    gen_method(module, sect, method, arguments, block, guards)
-  end
-
-  defp gen_method(module, sect, name, arguments, block, guards) when is_atom(name) do
-    guarded? = not is_nil(guards)
-    method_def = {module, sect, name, {}, {}}
-    method = method_def_to_name(method_def)
-
-    fun =
-      {:&, [],
-       [
-         {:/, [],
-          [
-            {{:., [], [module, method]}, [no_parens: true], []},
-            Enum.count(arguments)
-          ]}
-       ]}
-
+  defp do_add_event_attr({:target, _, [state]}, _opts, acc) when is_atom(state) do
     quote do
-      Module.put_attribute(
-        __MODULE__,
-        :"#{unquote(sect)}s",
-        {unquote(name), unquote(fun)}
-      )
-
-      if unquote(guarded?) do
-        def unquote(method)(unquote_splicing(arguments)) when unquote(guards) do
-          unquote(block)
-        end
-      else
-        def unquote(method)(unquote_splicing(arguments)) do
-          unquote(block)
-        end
-      end
+      struct!(unquote(acc), target: unquote(state))
     end
   end
 
-  defp add_attr(acc, attr, value) do
+  @attrs ~w[action entry exit]a
+  @actions ~w[assign cancel send_event]a
+
+  defp do_add_event_attr({attr, _, [action, _] = expr}, opts, acc)
+       when attr in @attrs and action in @actions do
+    %{env: env} = opts
+    [_, arg] = expr
+
+    ast =
+      case arg do
+        {:&, _, [{:/, _, [{method, _, nil}, 1]}]} -> capture_from(env, method, 1)
+        {:%{}, _, _} = arg -> arg
+        arg when is_atom(arg) -> arg
+        arg when is_list(arg) -> arg
+      end
+
     quote do
-      struct!(unquote(acc), [{unquote(attr), unquote(value)}])
+      struct!(unquote(acc), [{unquote(attr), {:"xfsm.#{unquote(action)}", unquote(ast)}}])
     end
   end
 
-  defp add_attr({attr, _, [argument, [do: block]]}, acc, attr, opts) when is_atom(attr) do
-    %{state: state, methods: methods, module: module} = opts
-    callback = :"#{state}_#{attr}"
-    {method_def, fun} = ast_to_callback(argument, block, module, callback, methods)
+  defp do_add_event_attr({attr, _, expr}, opts, acc) when attr in ~w[action entry exit guard]a do
+    fun = fun_from_expr(expr, opts)
 
-    exprs =
-      quote do
-        state = unquote(acc)
-
-        Map.update!(state, unquote(attr), fn
-          nil -> [unquote(fun)]
-          entries when is_list(entries) -> [unquote(fun)] ++ entries
-        end)
-      end
-
-    {exprs, %{opts | methods: [method_def] ++ methods}}
+    quote do
+      struct!(unquote(acc), [{unquote(attr), unquote(fun)}])
+    end
   end
 
-  defp add_attr({attr, c, [{m, o, args}]}, acc, attr, opts) when is_atom(attr) do
-    argument = {:arg, [], nil}
-    expr = {m, o, [argument | args]}
+  defp fun_from_expr(expr, opts) do
+    %{env: env} = opts
 
-    add_attr({attr, c, [argument, [do: expr]]}, acc, attr, opts)
+    case expr do
+      [method] when is_atom(method) -> capture_from(env, method, 1)
+      [method, param] when is_atom(method) -> {capture_from(env, method, 2), param}
+    end
+  end
+
+  defp capture_from(env, fun, arity) do
+    env
+    |> find_fun_owner(fun, arity)
+    |> method_capture_to_ast(fun, arity)
+  end
+
+  defp find_fun_owner(env, fun, arity) do
+    case Macro.Env.lookup_import(env, {fun, arity}) do
+      [] -> env.module
+      [{ctx, module}] when ctx in ~w[function macro]a -> module
+    end
   end
 
   defp add_always({:always, _, [[do: block]]}, acc, opts) do
@@ -204,28 +167,16 @@ defmodule XFsm.Builder do
         expr -> [expr]
       end
 
-    {ast, opts} =
+    ast =
       Enum.reduce(
         exprs,
-        {Macro.escape(%Always{}), opts},
-        fn
-          {field, _, [value]}, {exprs, opts} when is_atom(value) ->
-            {add_attr(exprs, field, value), opts}
-
-          {field, _, [{:%{}, _, _} = expr]}, {exprs, opts} ->
-            {add_attr(exprs, field, expr), opts}
-
-          {attr, _, _} = expr, acc when attr in [:action, :guard] ->
-            add_event_handler(:always, expr, acc)
-        end
+        Macro.escape(%Always{}),
+        &do_add_event_attr(&1, opts, &2)
       )
 
-    exprs =
-      quote do
-        unquote(acc) |> State.add_always(unquote(ast))
-      end
-
-    {exprs, opts}
+    quote do
+      unquote(acc) |> State.add_always(unquote(ast))
+    end
   end
 
   defp add_event({:on, _, [event, [do: block]]}, acc, opts) when is_atom(event) do
@@ -235,93 +186,30 @@ defmodule XFsm.Builder do
         expr -> [expr]
       end
 
-    {ast, opts} =
+    ast =
       Enum.reduce(
         exprs,
-        {Macro.escape(%Event{name: event}), opts},
-        fn
-          {field, _, [value]}, {exprs, opts} when is_atom(value) ->
-            {add_attr(exprs, field, value), opts}
-
-          {field, _, [{:%{}, _, _} = expr]}, {exprs, opts} ->
-            {add_attr(exprs, field, expr), opts}
-
-          {attr, _, _} = expr, acc when attr in [:action, :guard] ->
-            add_event_handler(event, expr, acc)
-        end
+        Macro.escape(%Event{name: event}),
+        &do_add_event_attr(&1, opts, &2)
       )
 
-    exprs =
-      quote do
-        unquote(acc) |> State.add_event(unquote(ast))
-      end
-
-    {exprs, opts}
+    quote do
+      unquote(acc) |> State.add_event(unquote(ast))
+    end
   end
 
-  defp add_event({:on, _, [event, attrs]}, acc, opts) when is_atom(event) and is_list(attrs) do
-    expr =
-      quote do
-        event = struct!(XFsm.Event, Keyword.merge(unquote(attrs), name: unquote(event)))
-        unquote(acc) |> State.add_event(event)
-      end
-
-    {expr, opts}
-  end
-
-  defp add_event_handler(event, {attr, _, [argument, expr]}, {exprs, opts}) do
-    %{state: state, methods: methods, module: module} = opts
-    callback = :"#{state}_#{event}_#{attr}"
-
-    block =
-      case expr do
-        [do: block] -> block
-        expr -> expr
-      end
-
-    {method_def, fun} = ast_to_callback(argument, block, module, callback, methods)
-
-    exprs =
-      quote do
-        unquote(exprs) |> struct!([{unquote(attr), unquote(fun)}])
-      end
-
-    {exprs, %{opts | methods: [method_def] ++ methods}}
-  end
-
-  defp add_event_handler(event, {attr, o, [{m, o1, args}]}, acc) do
-    argument = {:arg, [], nil}
-    expr = {m, o1, [argument | args]}
-
-    add_event_handler(event, {attr, o, [argument, expr]}, acc)
-  end
-
-  defp add_event_handler(event, {attr, o, [expr]}, acc) do
-    add_event_handler(event, {attr, o, [{:_, [], nil}, expr]}, acc)
-  end
-
-  defp ast_to_callback(argument, block, module, callback, methods) do
-    existing = Enum.count(methods, &match?({^module, ^callback, _, _, _}, &1))
-    method_def = {module, callback, existing + 1, argument, block}
-    method = method_def_to_name(method_def)
+  defp method_capture_to_ast(module, method, arity) do
     aliases = Module.split(module) |> Enum.map(&String.to_atom/1)
 
-    fun =
-      {:&, [],
-       [
-         {:/, [],
-          [
-            {{:., [], [{:__aliases__, [], aliases}, method]}, [no_parens: true], []},
-            1
-          ]}
-       ]}
-
-    {method_def, fun}
+    {:&, [],
+     [
+       {:/, [],
+        [
+          {{:., [], [{:__aliases__, [], aliases}, method]}, [no_parens: true], []},
+          arity
+        ]}
+     ]}
   end
-
-  @doc false
-  @spec method_def_to_name({module(), atom(), integer() | atom(), tuple(), tuple()}) :: atom()
-  def method_def_to_name({_module, callback, tag, _argument, _block}), do: :"#{callback}_#{tag}"
 
   defmacro __using__(_env) do
     quote do
@@ -329,9 +217,6 @@ defmodule XFsm.Builder do
 
       @before_compile XFsm.Builder
 
-      Module.register_attribute(__MODULE__, :guards, accumulate: true)
-      Module.register_attribute(__MODULE__, :actions, accumulate: true)
-      Module.register_attribute(__MODULE__, :methods, accumulate: true)
       Module.register_attribute(__MODULE__, :initial_state, accumulate: false)
       Module.register_attribute(__MODULE__, :states, accumulate: true)
     end
@@ -339,24 +224,12 @@ defmodule XFsm.Builder do
 
   defmacro __before_compile__(_env) do
     quote bind_quoted: [] do
-      methods = Module.get_attribute(__MODULE__, :methods, []) |> Enum.flat_map(& &1)
-
-      for {_, _method, _tag, argument, body} = definition <- methods do
-        name = XFsm.Builder.method_def_to_name(definition)
-
-        def unquote(name)(unquote(argument)) do
-          unquote(body)
-        end
-      end
-
       unless Module.defines?(__MODULE__, {:__context__, 1}) do
         @doc false
         def __context__(_), do: nil
       end
 
       @doc false
-      def __attr__(:guards), do: Enum.into(@guards, %{})
-      def __attr__(:actions), do: Enum.into(@actions, %{})
       def __attr__(:initial_state), do: @initial_state
       def __attr__(:states), do: Enum.reverse(@states)
     end

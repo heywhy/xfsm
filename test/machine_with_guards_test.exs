@@ -24,15 +24,15 @@ defmodule XFsm.MachineWithGuardsTest do
   state :active do
     on :toggle do
       target(:inactive)
-      guard(%{method: :is_after_time?, params: %{time: "16:00"}})
+      guard(:after_time?, %{time: "16:00"})
     end
   end
 
-  defg(can_be_toggled?(%{context: context}), do: context.can_activate?)
+  def can_be_toggled?(%{context: context}), do: context.can_activate?
 
-  defg(is_after_time?(_, %{time: time}), do: time == "16:00")
+  def after_time?(_, %{time: time}), do: time == "16:00"
 
-  defa(notify_not_allowed(), do: IO.puts("Cannot be toggled"))
+  def notify_not_allowed(_), do: IO.puts("Cannot be toggled")
 
   test "outputs cannot be toggled" do
     {machine, output} =

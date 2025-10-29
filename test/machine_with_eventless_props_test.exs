@@ -6,8 +6,6 @@ defmodule XFsm.MachineWithEventlessPropsTest do
   alias XFsm.Actor
   alias XFsm.Snapshot
 
-  import XFsm.Actions
-
   initial(:lukewarm)
   context(%{temp: 80})
 
@@ -20,22 +18,38 @@ defmodule XFsm.MachineWithEventlessPropsTest do
   state :heating do
     always do
       target(:boiling)
-      guard(%{context: c}, do: c.temp > 100)
+      guard(:check?, %{sign: :gt, value: 100})
     end
   end
 
   state :boiling do
     always do
       target(:heating)
-      guard(%{context: c}, do: c.temp <= 100)
+      guard(:check?, %{sign: :lte, value: 100})
     end
   end
 
   root do
     on :update_temp do
-      action(assigns(%{temp: & &1.event.temp}))
+      action(:assign, &update_temp/1)
     end
   end
+
+  def check?(arg, %{sign: :gt, value: _} = params) do
+    %{context: %{temp: temp}} = arg
+    %{value: value} = params
+
+    temp > value
+  end
+
+  def check?(arg, %{sign: :lte, value: _} = params) do
+    %{context: %{temp: temp}} = arg
+    %{value: value} = params
+
+    temp <= value
+  end
+
+  def update_temp(%{event: e}), do: %{temp: e.temp}
 
   setup do
     pid = start_supervised!({__MODULE__, []})

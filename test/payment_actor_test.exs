@@ -6,8 +6,6 @@ defmodule XFsm.PaymentActorTest do
   alias XFsm.Actor
   alias XFsm.Snapshot
 
-  import XFsm.Actions
-
   initial(:pending)
 
   context(%{input: input}, do: %{payment: input.payment})
@@ -15,44 +13,20 @@ defmodule XFsm.PaymentActorTest do
   state :pending do
     on :capture do
       target(:poll_incoming)
-
-      guard %{context: %{payment: payment}} do
-        payment.status == :pending and payment.direction == :incoming
-      end
-
-      action %{context: context} do
-        %{payment: %{customer: customer} = payment} = context
-
-        payment_method = new_payment_method(customer.first_name, customer.last_name)
-
-        %{context | payment: Map.put(payment, :payment_method, payment_method)}
-      end
+      guard(:capture?, %{direction: :incoming})
+      action(:assign, &gen_payment_method/1)
     end
 
     on :capture do
       target(:poll_outgoing)
-
-      guard %{context: %{payment: payment}, event: event} do
-        payment.status == :pending and payment.direction == :outgoing and
-          is_map(event[:payment_method]) and
-          match?(%{type: :bank_account}, event[:payment_method])
-      end
-
-      action %{context: context, event: %{payment_method: payment_method}} do
-        %{payment: payment} = context
-
-        %{context | payment: Map.put(payment, :payment_method, payment_method)}
-      end
+      guard(:capture?, %{direction: :outgoing})
+      action(:assign, &send_payment/1)
     end
   end
 
   state :poll_incoming do
-    entry(send_event(%{type: :timeout}, id: :timeout, delay: 6))
-    exit(cancel(:timeout))
-
-    on :test do
-      action(assigns(%{home: fn %{context: context} -> context.m end}))
-    end
+    entry(:send_event, event: %{type: :timeout}, id: :timeout, delay: 6)
+    exit(:cancel, :timeout)
 
     on :timeout do
       target(:timeout)
@@ -63,6 +37,45 @@ defmodule XFsm.PaymentActorTest do
   end
 
   state :timeout do
+  end
+
+  def capture?(
+        %{context: %{payment: %{direction: :incoming = d}} = context},
+        %{direction: d}
+      ) do
+    %{payment: payment} = context
+
+    payment.status == :pending
+  end
+
+  def capture?(
+        %{context: %{payment: %{direction: :outgoing = d}}} = arg,
+        %{direction: d}
+      ) do
+    %{event: event, context: context} = arg
+    %{payment: payment} = context
+
+    payment.status == :pending and match?(%{type: :bank_account}, event[:payment_method])
+  end
+
+  def capture?(_, _), do: false
+
+  def gen_payment_method(arg) do
+    %{context: %{payment: payment} = context} = arg
+    %{customer: customer} = payment
+
+    payment_method = new_payment_method(customer.first_name, customer.last_name)
+    updated_payment = Map.put(payment, :payment_method, payment_method)
+
+    %{context | payment: updated_payment}
+  end
+
+  def send_payment(arg) do
+    %{context: %{payment: payment} = context, event: %{payment_method: payment_method}} = arg
+
+    updated_payment = Map.put(payment, :payment_method, payment_method)
+
+    %{context | payment: updated_payment}
   end
 
   setup context do

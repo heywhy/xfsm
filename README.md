@@ -179,16 +179,16 @@ defmodule TicTacToe do
   state :x do
     on :move do
       target(:o)
-      guard(%{method: :can_move?, params: %{player: :x}})
-      action(:make_move)
+      guard(:can_move?, %{player: :x})
+      action(:assign, &make_move/1)
     end
   end
 
   state :o do
     on :move do
       target(:x)
-      guard(%{method: :can_move?, params: %{player: :o}})
-      action(:make_move)
+      guard(:can_move?, %{player: :o})
+      action(:assign, &make_move/1)
     end
   end
 
@@ -200,23 +200,23 @@ defmodule TicTacToe do
   root do
     always do
       target(:end)
-      guard(%{method: :won?, params: %{player: :o}})
-      action(assigns(%{winner: :o}))
+      guard(:won?, %{player: :o})
+      action(:assign, %{winner: :o})
     end
 
     always do
       target(:end)
-      guard(%{method: :won?, params: %{player: :x}})
-      action(assigns(%{winner: :x}))
+      guard(:won?, %{player: :x})
+      action(:assign, %{winner: :x})
     end
 
     always do
       target(:end)
-      guard(%{method: :drawn?, params: %{player: :x}})
+      guard(:drawn?)
     end
   end
 
-  defg can_move?(
+  def can_move?(
          %{context: %{x: x}, event: %{ref: x, square: s}} = arg,
          %{player: :x}
        )
@@ -226,7 +226,7 @@ defmodule TicTacToe do
     Board.empty?(board, square)
   end
 
-  defg can_move?(
+  def can_move?(
          %{context: %{o: o}, event: %{ref: o, square: s}} = arg,
          %{player: :o}
        )
@@ -236,7 +236,7 @@ defmodule TicTacToe do
     Board.empty?(board, square)
   end
 
-  defg won?(
+  def won?(
          %{self: %{state: _}, context: %{board: _}} = arg,
          %{player: player} = params
        )
@@ -247,13 +247,13 @@ defmodule TicTacToe do
     state != :end and Board.won?(board, player)
   end
 
-  defg drawn?(%{self: %{state: _}, context: %{board: _}} = arg) do
+  def drawn?(%{self: %{state: _}, context: %{board: _}} = arg) do
     %{self: %{state: state}, context: %{board: board}} = arg
 
     state != :end and Board.draw?(board)
   end
 
-  defa make_move(%{context: %{x: x} = c, event: %{ref: x, square: s}})
+  def make_move(%{context: %{x: x} = c, event: %{ref: x, square: s}})
        when is_integer(s) and s >= 1 and s <= 9 do
     %{board: board} = c
     board = Board.put(board, s, :x)
@@ -261,7 +261,7 @@ defmodule TicTacToe do
     %{c | board: board}
   end
 
-  defa make_move(%{context: %{o: o} = c, event: %{ref: o, square: s}})
+  def make_move(%{context: %{o: o} = c, event: %{ref: o, square: s}})
        when is_integer(s) and s >= 1 and s <= 9 do
     %{board: board} = c
     board = Board.put(board, s, :o)

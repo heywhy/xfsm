@@ -15,7 +15,7 @@ defmodule XFsm.ActionsTest do
     event = %{type: :testing}
     arg = %{self: %{pid: self()}, context: %{}}
 
-    assert %{} = send_event(arg, event, delay: 10)
+    assert %{} = send_event(arg, event: event, delay: 10)
     assert_receive {:"$gen_cast", {:send, ^event}}, 12
   end
 
@@ -29,7 +29,7 @@ defmodule XFsm.ActionsTest do
 
   test "delayed sent event can be cancelled" do
     arg = %{self: %{pid: self()}, context: %{}}
-    context = send_event(arg, %{type: :test}, delay: 10, id: :some_id)
+    context = send_event(arg, event: %{type: :test}, delay: 10, id: :some_id)
 
     assert %{} = cancel(%{arg | context: context}, :some_id)
     refute_receive {:"$gen_cast", {:send, %{type: :test}}}, 11
@@ -37,7 +37,7 @@ defmodule XFsm.ActionsTest do
 
   test "cancelling an unknown timer breaks nothing" do
     arg = %{self: %{pid: self()}, context: %{}}
-    context = send_event(arg, %{type: :test}, delay: 10, id: :some_id)
+    context = send_event(arg, event: %{type: :test}, delay: 10, id: :some_id)
 
     assert %{} = cancel(%{arg | context: context}, :unknown_id)
     assert_receive {:"$gen_cast", {:send, %{type: :test}}}, 11
@@ -49,7 +49,7 @@ defmodule XFsm.ActionsTest do
       event: %{type: :inc, value: 1}
     }
 
-    assert %{value: 2, old_value: 1, name: "Fred"} =
+    assert {:update, %{value: 2, old_value: 1, name: "Fred"}} =
              assigns(arg, %{
                name: "Fred",
                value: &(&1.event.value + 1),

@@ -4,8 +4,6 @@ defmodule XFsm.MachineTest do
 
   alias XFsm.Machine
 
-  import XFsm.Actions
-
   defmodule MissingInitialState do
     use XFsm.Machine
 
@@ -20,22 +18,26 @@ defmodule XFsm.MachineTest do
   context(%{count: 0})
 
   state :active do
-    entry(
-      assigns(%{
-        count: &(&1.context.count + 1)
-      })
-    )
+    entry(:assign, &increment/1)
+    exit(:noop)
 
     on :toggle do
+      guard(:toggle?)
       target(:inactive)
     end
   end
 
   state :inactive do
     on :toggle do
+      guard(:toggle?)
       target(:active)
     end
   end
+
+  def toggle?(_), do: true
+
+  def noop(_), do: nil
+  def increment(%{context: context}), do: %{count: context.count + 1}
 
   test "init machine" do
     assert %{state: :active, context: context} = Machine.init(__MODULE__)
@@ -65,5 +67,30 @@ defmodule XFsm.MachineTest do
                  fn ->
                    Machine.init(MissingInitialState)
                  end
+  end
+
+  # TODO: test overriding actions & guards.
+  test "override default actions" do
+    pid = self()
+    actions = %{noop: fn _ -> send(pid, :called) end}
+
+    machine = Machine.init(__MODULE__, actions: actions)
+
+    assert %{state: :inactive, context: %{count: 1}} =
+             Machine.transition(machine, %{type: :toggle})
+
+    assert_receive :called
+  end
+
+  test "override default guards" do
+    pid = self()
+    guards = %{toggle?: fn _ -> send(pid, :called) == :called end}
+
+    machine = Machine.init(__MODULE__, guards: guards)
+
+    assert %{state: :inactive, context: %{count: 1}} =
+             Machine.transition(machine, %{type: :toggle})
+
+    assert_receive :called
   end
 end

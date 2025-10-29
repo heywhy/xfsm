@@ -6,23 +6,25 @@ defmodule XFsm.MachineWithTopLevelEventsTest do
   alias XFsm.Actor
   alias XFsm.Snapshot
 
-  import XFsm.Actions
-
   context(%{count: 0})
 
   root do
     on :inc do
-      action(assigns(%{count: &(&1.context.count + 1)}))
+      action(:assign, &inc/1)
     end
 
     on :dec do
-      action(assigns(%{count: &(&1.context.count - 1)}))
+      action(:assign, &dec/1)
     end
 
     on :set do
-      action(assigns(%{count: & &1.event.value}))
+      action(:assign, &set/1)
     end
   end
+
+  def inc(%{context: context}), do: %{count: context.count + 1}
+  def dec(%{context: context}), do: %{count: context.count - 1}
+  def set(%{event: event}), do: %{count: event.value}
 
   setup do
     pid = start_supervised!({__MODULE__, []})

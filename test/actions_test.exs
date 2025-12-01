@@ -35,6 +35,14 @@ defmodule XFsm.ActionsTest do
     refute_receive {:"$gen_cast", {:send, %{type: :test}}}, 11
   end
 
+  test "passing function to cancel gets invoked" do
+    arg = %{self: %{pid: self()}, context: %{}}
+    context = send_event(arg, event: %{type: :test}, delay: 10, id: :some_id)
+
+    assert %{} = cancel(%{arg | context: context}, fn _ -> :some_id end)
+    refute_receive {:"$gen_cast", {:send, %{type: :test}}}, 11
+  end
+
   test "cancelling an unknown timer breaks nothing" do
     arg = %{self: %{pid: self()}, context: %{}}
     context = send_event(arg, event: %{type: :test}, delay: 10, id: :some_id)

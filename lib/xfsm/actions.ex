@@ -43,6 +43,10 @@ defmodule XFsm.Actions do
   end
 
   @spec cancel(XFsm.action_arg(), term()) :: XFsm.context()
+  def cancel(arg, fun) when is_function(fun, 1) do
+    cancel(arg, fun.(arg))
+  end
+
   def cancel(%{context: context}, id) do
     case Timers.remove(id) do
       nil -> :ok

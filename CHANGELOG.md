@@ -5,6 +5,15 @@ See [Conventional Commits](Https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
+## [v0.6.0-rc.1](https://github.com/heywhy/xfsm/compare/v0.6.0-rc.0...v0.6.0-rc.1) (2025-12-01)
+
+
+
+
+### Bug Fixes:
+
+* cancel action allows function as params by Rasheed Atanda
+
 ## [v0.6.0-rc.0](https://github.com/heywhy/xfsm/compare/v0.5.0...v0.6.0-rc.0) (2025-10-29)
 
 

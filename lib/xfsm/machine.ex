@@ -17,6 +17,7 @@ defmodule XFsm.Machine do
     always: [],
     events: [],
     states: [],
+    timers: %{},
     actions: %{},
     guards: %{}
   ]

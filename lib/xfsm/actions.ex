@@ -33,10 +33,10 @@ defmodule XFsm.Actions do
 
       delay when is_integer(delay) ->
         # INFO: maybe tag id with the machine module?
-        id = opts[:id]
+        id = Keyword.fetch!(opts, :id)
         ref = Process.send_after(pid, {:"$gen_cast", {:send, event}}, delay)
 
-        Timers.add(id, ref)
+        set_delay_id(pid, id, ref)
     end
 
     context
@@ -47,13 +47,25 @@ defmodule XFsm.Actions do
     cancel(arg, fun.(arg))
   end
 
-  def cancel(%{context: context}, id) do
-    case Timers.remove(id) do
+  def cancel(arg, id) do
+    %{self: %{pid: pid}, context: context} = arg
+
+    cancel_delay_id(pid, id)
+
+    context
+  end
+
+  defp set_delay_id(pid, id, ref) do
+    cancel_delay_id(pid, id)
+
+    Timers.add({pid, id}, ref)
+  end
+
+  defp cancel_delay_id(pid, id) do
+    case Timers.remove({pid, id}) do
       nil -> :ok
       ref when is_reference(ref) -> Process.cancel_timer(ref)
     end
-
-    context
   end
 
   @spec assign(XFsm.action_arg(), map() | (XFsm.action_arg() -> map())) ::

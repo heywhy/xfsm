@@ -15,7 +15,7 @@ defmodule XFsm.ActionsTest do
     event = %{type: :testing}
     arg = %{self: %{pid: self()}, context: %{}}
 
-    assert %{} = send_event(arg, event: event, delay: 10)
+    assert %{} = send_event(arg, event: event, id: :test, delay: 10)
     assert_receive {:"$gen_cast", {:send, ^event}}, 12
   end
 

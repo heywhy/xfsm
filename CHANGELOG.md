@@ -5,6 +5,15 @@ See [Conventional Commits](Https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
+## [v0.6.0-rc.2](https://github.com/heywhy/xfsm/compare/v0.6.0-rc.1...v0.6.0-rc.2) (2025-12-13)
+
+
+
+
+### Bug Fixes:
+
+* require id for delayed event by Rasheed Atanda
+
 ## [v0.6.0-rc.1](https://github.com/heywhy/xfsm/compare/v0.6.0-rc.0...v0.6.0-rc.1) (2025-12-01)
 
 

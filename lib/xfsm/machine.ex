@@ -195,7 +195,7 @@ defmodule XFsm.Machine do
   end
 
   defp apply_always(machine, always, arg) do
-    %{actions: actions, context: context} = machine
+    %{actions: actions, context: context, state: state} = machine
 
     matched = Enum.find(always, &allowed?(&1.guard, arg[:event], machine))
 
@@ -204,7 +204,7 @@ defmodule XFsm.Machine do
         context = reduce_cbs(m.action, context, arg, actions)
         %{machine | context: context}
 
-      %Always{} = m ->
+      %Always{target: target} = m when target != state ->
         context = reduce_cbs(m.action, context, arg, actions)
         machine = %{machine | context: context}
 

@@ -6,19 +6,19 @@ defmodule XFsm.MachineWithTopLevelEventsTest do
   alias XFsm.Actor
   alias XFsm.Snapshot
 
-  context(%{count: 0})
+  context %{count: 0}
 
   root do
     on :inc do
-      action(:assign, &inc/1)
+      action :assign, &inc/1
     end
 
     on :dec do
-      action(:assign, &dec/1)
+      action :assign, &dec/1
     end
 
     on :set do
-      action(:assign, &set/1)
+      action :assign, &set/1
     end
   end
 

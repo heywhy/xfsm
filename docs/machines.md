@@ -15,10 +15,10 @@ defmodule Feedback do
   use XFsm.Actor
   use XFsm.Machine
 
-  initial(:question)
+  initial :question
 
   state :question do
-    on :"feedback.good", do: target(:thanks)
+    on :"feedback.good", do: target :thanks
   end
 
   state :thanks do
@@ -72,15 +72,15 @@ defmodule Feedback do
   use XFsm.Actor
   use XFsm.Machine
 
-  initial(:rate)
+  initial :rate
 
   state :rate do
-    entry(:do_something)
+    entry :do_something
   end
 
-  defa do_something(), do: IO.puts("hello")
+  def do_something(_), do: IO.puts("hello")
 end
 
-{:ok, pid} = Feedback.start_link(actions: %{do_something: fn -> IO.puts("world") end})
+{:ok, pid} = Feedback.start_link(actions: %{do_something: fn _ -> IO.puts("world") end})
 # logs 'world'
 ```

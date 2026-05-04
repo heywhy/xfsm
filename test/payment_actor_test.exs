@@ -6,30 +6,30 @@ defmodule XFsm.PaymentActorTest do
   alias XFsm.Actor
   alias XFsm.Snapshot
 
-  initial(:pending)
+  initial :pending
 
-  context(%{input: input}, do: %{payment: input.payment})
+  context %{input: input}, do: %{payment: input.payment}
 
   state :pending do
     on :capture do
-      target(:poll_incoming)
-      guard(:capture?, %{direction: :incoming})
-      action(:assign, &gen_payment_method/1)
+      target :poll_incoming
+      guard :capture?, %{direction: :incoming}
+      action :assign, &gen_payment_method/1
     end
 
     on :capture do
-      target(:poll_outgoing)
-      guard(:capture?, %{direction: :outgoing})
-      action(:assign, &send_payment/1)
+      target :poll_outgoing
+      guard :capture?, %{direction: :outgoing}
+      action :assign, &send_payment/1
     end
   end
 
   state :poll_incoming do
-    entry(:send_event, event: %{type: :timeout}, id: :timeout, delay: 6)
-    exit(:cancel, :timeout)
+    entry :send_event, event: %{type: :timeout}, id: :timeout, delay: 6
+    exit :cancel, :timeout
 
     on :timeout do
-      target(:timeout)
+      target :timeout
     end
   end
 

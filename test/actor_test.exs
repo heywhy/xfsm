@@ -6,17 +6,17 @@ defmodule XFsm.ActorTest do
   alias XFsm.Actor
   alias XFsm.Snapshot
 
-  initial(:off)
+  initial :off
 
   state :off do
     on :toggle do
-      target(:on)
+      target :on
     end
   end
 
   state :on do
     on :toggle do
-      target(:off)
+      target :off
     end
   end
 

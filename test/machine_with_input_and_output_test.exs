@@ -6,12 +6,12 @@ defmodule XFsm.MachineWithInputAndOutputTest do
 
   alias XFsm.Machine
 
-  initial(:active)
+  initial :active
 
-  context(%{input: input}, do: %{message: "Hello, #{input.name}"})
+  context %{input: input}, do: %{message: "Hello, #{input.name}"}
 
   state :active do
-    entry(:log)
+    entry :log
   end
 
   def log(%{context: context}), do: IO.puts(context.message)

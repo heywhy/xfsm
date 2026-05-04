@@ -6,28 +6,28 @@ defmodule XFsm.MachineWithActionsTest do
 
   alias XFsm.Machine
 
-  initial(:active)
+  initial :active
 
   state :active do
-    entry(:activate)
-    exit(:deactivate)
+    entry :activate
+    exit :deactivate
 
     on :toggle do
-      target(:inactive)
-      action(:notify)
+      target :inactive
+      action :notify
     end
   end
 
   state :inactive do
     on :toggle do
-      target(:active)
-      action(:notify, %{message: "Some notification"})
+      target :active
+      action :notify, %{message: "Some notification"}
     end
   end
 
   root do
     on :* do
-      action(:catch_all)
+      action :catch_all
     end
   end
 

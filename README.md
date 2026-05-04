@@ -33,18 +33,41 @@ defmodule Counter do
 
   import XFsm.Actions
 
-  context(%{count: 0})
+  context %{count: 0}
 
-  on :inc do
-    action(assigns(%{count: & &1.context.count + 1}))
+  root do
+    on :inc do
+      action :assign, &inc/1
+    end
+
+    on :dec do
+      action :assign, &dec/1
+    end
+
+    on :set do
+      action :assign, &set/1
+    end
   end
 
-  on :dec do
-    action(assigns(%{count: & &1.context.count - 1}))
+  @spec inc(XFsm.action_arg()) :: map()
+  def inc(arg) do
+    %{context: ctx} = arg
+
+    %{count: ctx.count + 1}
   end
 
-  on :set do
-    action(assigns(%{count: & &1.event.value}))
+  @spec dec(XFsm.action_arg()) :: map()
+  def dec(arg) do
+    %{context: ctx} = arg
+
+    %{count: ctx.count - 1}
+  end
+
+  @spec set(XFsm.action_arg()) :: map()
+  def set(arg) do
+    %{event: event} = arg
+
+    %{count: event.value}
   end
 end
 
@@ -91,8 +114,6 @@ set@{shape: event, label: "SET\nassigns(...)"}
 defmodule TicTacToe do
   use XFsm.Actor
   use XFsm.Machine
-
-  import XFsm.Actions
 
   defmodule Board do
     defstruct squares: {nil, nil, nil, nil, nil, nil, nil, nil, nil}
@@ -173,22 +194,22 @@ defmodule TicTacToe do
     end
   end
 
-  initial(:x)
-  context(%{input: i}, do: context_from_input(i))
+  initial :x
+  context %{input: i}, do: context_from_input(i)
 
   state :x do
     on :move do
-      target(:o)
-      guard(:can_move?, %{player: :x})
-      action(:assign, &make_move/1)
+      target :o
+      guard :can_move?, %{player: :x}
+      action :assign, &make_move/1
     end
   end
 
   state :o do
     on :move do
-      target(:x)
-      guard(:can_move?, %{player: :o})
-      action(:assign, &make_move/1)
+      target :x
+      guard :can_move?, %{player: :o}
+      action :assign, &make_move/1
     end
   end
 
@@ -199,48 +220,48 @@ defmodule TicTacToe do
 
   root do
     always do
-      target(:end)
-      guard(:won?, %{player: :o})
-      action(:assign, %{winner: :o})
+      target :end
+      guard :won?, %{player: :o}
+      action :assign, %{winner: :o}
     end
 
     always do
-      target(:end)
-      guard(:won?, %{player: :x})
-      action(:assign, %{winner: :x})
+      target :end
+      guard :won?, %{player: :x}
+      action :assign, %{winner: :x}
     end
 
     always do
-      target(:end)
-      guard(:drawn?)
+      target :end
+      guard :drawn?
     end
   end
 
   def can_move?(
-         %{context: %{x: x}, event: %{ref: x, square: s}} = arg,
-         %{player: :x}
-       )
-       when is_integer(s) and s >= 1 and s <= 9 do
+        %{context: %{x: x}, event: %{ref: x, square: s}} = arg,
+        %{player: :x}
+      )
+      when is_integer(s) and s >= 1 and s <= 9 do
     %{context: %{board: board}, event: %{square: square}} = arg
 
     Board.empty?(board, square)
   end
 
   def can_move?(
-         %{context: %{o: o}, event: %{ref: o, square: s}} = arg,
-         %{player: :o}
-       )
-       when is_integer(s) and s >= 1 and s <= 9 do
+        %{context: %{o: o}, event: %{ref: o, square: s}} = arg,
+        %{player: :o}
+      )
+      when is_integer(s) and s >= 1 and s <= 9 do
     %{context: %{board: board}, event: %{square: square}} = arg
 
     Board.empty?(board, square)
   end
 
   def won?(
-         %{self: %{state: _}, context: %{board: _}} = arg,
-         %{player: player} = params
-       )
-       when player in [:x, :o] do
+        %{self: %{state: _}, context: %{board: _}} = arg,
+        %{player: player} = params
+      )
+      when player in [:x, :o] do
     %{self: %{state: state}, context: %{board: board}} = arg
     %{player: player} = params
 
@@ -254,7 +275,7 @@ defmodule TicTacToe do
   end
 
   def make_move(%{context: %{x: x} = c, event: %{ref: x, square: s}})
-       when is_integer(s) and s >= 1 and s <= 9 do
+      when is_integer(s) and s >= 1 and s <= 9 do
     %{board: board} = c
     board = Board.put(board, s, :x)
 
@@ -262,7 +283,7 @@ defmodule TicTacToe do
   end
 
   def make_move(%{context: %{o: o} = c, event: %{ref: o, square: s}})
-       when is_integer(s) and s >= 1 and s <= 9 do
+      when is_integer(s) and s >= 1 and s <= 9 do
     %{board: board} = c
     board = Board.put(board, s, :o)
 

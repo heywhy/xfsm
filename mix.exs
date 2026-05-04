@@ -106,7 +106,7 @@ defmodule XFsm.MixProject do
 
   defp before_closing_head_tag(:html) do
     """
-    <script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/mermaid@11.14.0/dist/mermaid.min.js"></script>
     <script src="js/renderer.js"></script>
     """
   end

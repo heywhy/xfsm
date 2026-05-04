@@ -84,22 +84,22 @@ defmodule XFsm.TicTacToeTest do
     end
   end
 
-  initial(:x)
-  context(%{input: i}, do: context_from_input(i))
+  initial :x
+  context %{input: i}, do: context_from_input(i)
 
   state :x do
     on :move do
-      target(:o)
-      guard(:can_move?, %{player: :x})
-      action(:assign, &make_move/1)
+      target :o
+      guard :can_move?, %{player: :x}
+      action :assign, &make_move/1
     end
   end
 
   state :o do
     on :move do
-      target(:x)
-      guard(:can_move?, %{player: :o})
-      action(:assign, &make_move/1)
+      target :x
+      guard :can_move?, %{player: :o}
+      action :assign, &make_move/1
     end
   end
 
@@ -108,20 +108,20 @@ defmodule XFsm.TicTacToeTest do
 
   root do
     always do
-      target(:end)
-      guard(:won?, %{player: :o})
-      action(:assign, %{winner: :o})
+      target :end
+      guard :won?, %{player: :o}
+      action :assign, %{winner: :o}
     end
 
     always do
-      target(:end)
-      guard(:won?, %{player: :x})
-      action(:assign, %{winner: :x})
+      target :end
+      guard :won?, %{player: :x}
+      action :assign, %{winner: :x}
     end
 
     always do
-      target(:end)
-      guard(:drawn?)
+      target :end
+      guard :drawn?
     end
   end
 

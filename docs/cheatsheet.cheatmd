@@ -12,17 +12,17 @@ defmodule ToggleMachine do
   use XFsm.Actor
   use XFsm.Machine
 
-  initial(:active)
-  context(%{count: 0})
+  initial :active
+  context %{count: 0}
 
   state :active do
-    entry(:assign, &increment/1)
+    entry :assign, &increment/1
 
-    on :toggle, do: target(:inactive)
+    on :toggle, do: target :inactive
   end
 
   state :inactive do
-    on :toggle, do: target(:active)
+    on :toggle, do: target :active
   end
 
   def increment(%{context: context}), do: %{count: context.count + 1}
@@ -51,24 +51,24 @@ defmodule ToggleMachine do
   use XFsm.Actor
   use XFsm.Machine
 
-  initial(:active)
-  context(%{activate?: false})
+  initial :active
+  context %{activate?: false}
 
   state :inactive do
     on :toggle do
-      target(:active)
-      guard(:toggle?)
+      target :active
+      guard :toggle?
     end
 
     on :toggle do
-      action(:notify_not_allowed)
+      action :notify_not_allowed
     end
   end
 
   state :active do
     on :toggle do
-      target(:inactive)
-      guard(:after_time?, %{time: "00:00"})
+      target :inactive
+      guard :after_time?, %{time: "00:00"}
     end
   end
 
@@ -97,22 +97,22 @@ defmodule ToggleMachine do
   use XFsm.Actor
   use XFsm.Machine
 
-  initial(:active)
+  initial :active
 
   state :active do
-    entry(:activate)
-    exit(:deactivate)
+    entry :activate
+    exit :deactivate
 
     on :toggle do
-      target(:inactive)
-      action(:notify)
+      target :inactive
+      action :notify
     end
   end
 
   state :inactive do
     on :toggle do
-      target(:active)
-      action(:notify, %{message: "Some notification"})
+      target :active
+      action :notify, %{message: "Some notification"}
     end
   end
 

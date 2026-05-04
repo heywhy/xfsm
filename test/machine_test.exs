@@ -14,23 +14,23 @@ defmodule XFsm.MachineTest do
     end
   end
 
-  initial(:active)
-  context(%{count: 0})
+  initial :active
+  context %{count: 0}
 
   state :active do
-    entry(:assign, &increment/1)
-    exit(:noop)
+    entry :assign, &increment/1
+    exit :noop
 
     on :toggle do
-      guard(:toggle?)
-      target(:inactive)
+      guard :toggle?
+      target :inactive
     end
   end
 
   state :inactive do
     on :toggle do
-      guard(:toggle?)
-      target(:active)
+      guard :toggle?
+      target :active
     end
   end
 

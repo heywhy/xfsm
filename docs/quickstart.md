@@ -27,17 +27,17 @@ defmodule LightbulbSwitch do
   use XFsm.Actor
   use XFsm.Machine
 
-  initial(:off)
+  initial :off
 
   state :off do
     on :press do
-      target(:on)
+      target :on
     end
   end
 
   state :on do
     on :press do
-      target(:off)
+      target :off
     end
   end
 end
@@ -86,22 +86,29 @@ defmodule ToggleMachine do
 
   import XFsm.Actions
 
-  initial(:inactive)
-  context(%{count: 0})
+  initial :inactive
+  context %{count: 0}
 
   state :inactive do
     on :toggle do
-      target(:active)
+      target :active
     end
   end
 
   state :active do
     # Increment `count` every time we transition into this state.
-    entry(assigns(%{count: &(&1.context.count + 1)}))
+    entry :assign, &increment/1
 
     on :toggle do
-      target(:inactive)
+      target :inactive
     end
+  end
+
+  @spec increment(XFsm.action_arg()) :: map()
+  def increment(arg) do
+    %{context: context} = arg
+
+    %{count: context.count + 1}
   end
 end
 ```
@@ -117,22 +124,36 @@ defmodule ToggleMachine do
 
   import XFsm.Actions
 
-  initial(:inactive)
-  context(%{input: input}, do: %{count: 0, max_count: input.max_count})
+  initial :inactive
+  context %{input: input}, do: %{count: 0, max_count: input.max_count}
 
   state :inactive do
     on :toggle do
-      target(:active)
-      guard(%{context: context}, do: context.count < context.max_count)
+      target :active
+      guard :toggle?
     end
   end
 
   state :active do
-    entry(assigns(%{count: &(&1.context.count + 1)}))
+    entry :assign, &increment/1
 
     on :toggle do
-      target(:inactive)
+      target :inactive
     end
+  end
+
+  @spec toggle?(XFsm.action_arg()) :: boolean()
+  def toggle?(arg) do
+    %{context: context} = arg
+
+    context.count < context.max_count
+  end
+
+  @spec increment(XFsm.action_arg()) :: map()
+  def increment(arg) do
+    %{context: context} = arg
+
+    %{count: context.count + 1}
   end
 end
 

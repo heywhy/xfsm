@@ -6,32 +6,32 @@ defmodule XFsm.MachineWithEventlessPropsTest do
   alias XFsm.Actor
   alias XFsm.Snapshot
 
-  initial(:lukewarm)
-  context(%{temp: 80})
+  initial :lukewarm
+  context %{temp: 80}
 
   state :lukewarm do
     on :boil do
-      target(:heating)
+      target :heating
     end
   end
 
   state :heating do
     always do
-      target(:boiling)
-      guard(:check?, %{sign: :gt, value: 100})
+      target :boiling
+      guard :check?, %{sign: :gt, value: 100}
     end
   end
 
   state :boiling do
     always do
-      target(:heating)
-      guard(:check?, %{sign: :lte, value: 100})
+      target :heating
+      guard :check?, %{sign: :lte, value: 100}
     end
   end
 
   root do
     on :update_temp do
-      action(:assign, &update_temp/1)
+      action :assign, &update_temp/1
     end
   end
 

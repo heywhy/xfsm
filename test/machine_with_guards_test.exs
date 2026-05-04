@@ -6,25 +6,25 @@ defmodule XFsm.MachineWithGuardsTest do
 
   alias XFsm.Machine
 
-  initial(:active)
+  initial :active
 
-  context(%{can_activate?: false})
+  context %{can_activate?: false}
 
   state :inactive do
     on :toggle do
-      target(:active)
-      guard(:can_be_toggled?)
+      target :active
+      guard :can_be_toggled?
     end
 
     on :toggle do
-      action(:notify_not_allowed)
+      action :notify_not_allowed
     end
   end
 
   state :active do
     on :toggle do
-      target(:inactive)
-      guard(:after_time?, %{time: "16:00"})
+      target :inactive
+      guard :after_time?, %{time: "16:00"}
     end
   end
 

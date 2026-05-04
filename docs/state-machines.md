@@ -43,7 +43,7 @@ In XFsm, states are defined using the `state` attribute.
 defmodule Lightbulb do
   use XFsm.Machine
 
-  initial(:off)
+  initial :off
 
   state :off do
   end
@@ -84,14 +84,14 @@ Events and transitions are defined in XFsm state machines inside the `on` proper
 defmodule Lightbulb do
   use XFsm.Machine
 
-  initial(:off)
+  initial :off
 
   state :off do
-    on :turn_on, do: target(:on)
+    on :on, do: target :on
   end
 
   state :on do
-    off :turn_off, do: target(:off)
+    on :off, do: target :off
   end
 end
 ```

@@ -5,6 +5,15 @@ See [Conventional Commits](Https://conventionalcommits.org) for commit guideline
 
 <!-- changelog -->
 
+## [v0.6.0-rc.4](https://github.com/heywhy/xfsm/compare/v0.6.0-rc.3...v0.6.0-rc.4) (2026-05-04)
+
+
+
+
+### Bug Fixes:
+
+* expose formatter config by Rasheed Atanda
+
 ## [v0.6.0-rc.3](https://github.com/heywhy/xfsm/compare/v0.6.0-rc.2...v0.6.0-rc.3) (2026-02-01)
 
 
